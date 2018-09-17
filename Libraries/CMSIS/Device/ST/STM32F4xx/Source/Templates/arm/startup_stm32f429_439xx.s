@@ -80,8 +80,8 @@ __Vectors       DCD     __initial_sp               ; Top of Stack
                 DCD     SVC_Handler                ; SVCall Handler
                 DCD     DebugMon_Handler           ; Debug Monitor Handler
                 DCD     0                          ; Reserved
-                DCD     PendSV_Handler             ; PendSV Handler
-                DCD     SysTick_Handler            ; SysTick Handler
+                DCD     OS_CPU_PendSVHandler             ; PendSV Handler
+                DCD     OS_CPU_SysTickHandler            ; SysTick Handler
 
                 ; External Interrupts
                 DCD     WWDG_IRQHandler                   ; Window WatchDog                                        
@@ -188,6 +188,24 @@ Reset_Handler    PROC
         IMPORT  SystemInit
         IMPORT  __main
 
+                IF {FPU} != "SoftVFP"
+                                                ; Enable Floating Point Support at reset for FPU
+                LDR.W   R0, =0xE000ED88         ; Load address of CPACR register
+                LDR     R1, [R0]                ; Read value at CPACR
+                ORR     R1,  R1, #(0xF <<20)    ; Set bits 20-23 to enable CP10 and CP11 coprocessors
+                                                ; Write back the modified CPACR value
+                STR     R1, [R0]                ; Wait for store to complete
+                DSB
+                
+                                                ; Disable automatic FP register content
+                                                ; Disable lazy context switch
+                LDR.W   R0, =0xE000EF34         ; Load address to FPCCR register
+                LDR     R1, [R0]
+                AND     R1,  R1, #(0x3FFFFFFF)  ; Clear the LSPEN and ASPEN bits
+                STR     R1, [R0]
+                ISB                             ; Reset pipeline now the FPU is enabled
+                ENDIF
+
                  LDR     R0, =SystemInit
                  BLX     R0
                  LDR     R0, =__main
@@ -229,12 +247,12 @@ DebugMon_Handler\
                 EXPORT  DebugMon_Handler           [WEAK]
                 B       .
                 ENDP
-PendSV_Handler  PROC
-                EXPORT  PendSV_Handler             [WEAK]
+OS_CPU_PendSVHandler  PROC
+                EXPORT  OS_CPU_PendSVHandler             [WEAK]
                 B       .
                 ENDP
-SysTick_Handler PROC
-                EXPORT  SysTick_Handler            [WEAK]
+OS_CPU_SysTickHandler PROC
+                EXPORT  OS_CPU_SysTickHandler            [WEAK]
                 B       .
                 ENDP
 
