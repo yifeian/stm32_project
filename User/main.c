@@ -17,14 +17,12 @@
 	
 #include "stm32f4xx.h"
 #include "bsp_led.h"
-
-
-
-static void Delay(__IO uint32_t nCount)	 //简单的延时函数
-{
-	for(; nCount != 0; nCount--);
-}
-
+#include "bsp_SysTick.h"
+#include "bsp_debug_usart.h"
+#include "stdlib.h"
+#include "bsp_sdram.h"   
+#include "malloc.h"	
+#include <stdio.h>
 
 /**
   * @brief  主函数
@@ -33,30 +31,36 @@ static void Delay(__IO uint32_t nCount)	 //简单的延时函数
   */
 int main ( void )
 {	
+	uint8_t *p_in = NULL;
+	uint8_t *p_out = NULL;
 	LED_GPIO_Config ();	          //初始化 LED
- 
-
-	while ( 1 )
+ 	SysTick_Init();
+	Debug_USART_Config();
+	SDRAM_Init();
+	Delay_ms(1000);
+	LOG("MEM TEST START\r\n");
+	p_in = mymalloc(0,5*1024);
+	p_out = mymalloc(1,100*1024);
+	if(p_in == NULL || p_out == NULL)
 	{
-		/*
-		LED1_ON;			  // 亮
-		Delay ( 0x0FFFFFF );
-		LED1_OFF;		    // 灭
-
-		LED2_ON;			  // 亮
-		Delay ( 0x0FFFFFF );
-		LED2_OFF;		    // 灭
-
-		LED3_ON;			  // 亮
-		Delay ( 0x0FFFFFF );
-		LED3_OFF;		    // 灭
-		*/
-		LED4(1);
-		Delay ( 0x0FFFFFF );
-		LED4(0);
-		Delay ( 0x0FFFFFF );
-		
+		LOG("MALLOC fail \r\n");
 	}
+	else
+	{
+		snprintf((char*)p_in,80,"%s","this is a test for mem malloc SRAMIN");
+		snprintf((char*)p_out,80,"%s","this is a test for mem malloc SRAMEX");
+	}
+	LOG("%s \r\n",p_in);
+	LOG("%s \r\n",p_out);
+	LOG("SRAMIN USED:%d%%\r\n", my_mem_perused(SRAMIN));
+	LOG("SRAMEX USED:%d%%\r\n", my_mem_perused(SRAMEX));
+
+	myfree(SRAMIN,p_in);
+	myfree(SRAMEX,p_out);
+
+		LOG("release successful\r\n");
+		LOG("SRAMIN USED:%d%%\r\n", my_mem_perused(SRAMIN));
+		LOG("SRAMEX USED:%d%%\r\n", my_mem_perused(SRAMEX));
 
 }
 

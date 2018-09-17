@@ -51,6 +51,12 @@ void Delay_us(__IO u32 nTime)
 	while(TimingDelay != 0);
 }
 
+void Delay_ms(__IO u32 nTime)
+{
+	TimingDelay = nTime*1000;
+	while(TimingDelay != 0);
+}
+
 /**
   * @brief  获取节拍程序
   * @param  无

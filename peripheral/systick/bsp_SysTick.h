@@ -5,6 +5,6 @@
 
 void SysTick_Init(void);
 void Delay_us(__IO u32 nTime);
-#define Delay_ms(x) Delay_us(100*x)	 //µ¥Î»ms
+void Delay_ms(__IO u32 nTime);
 
 #endif /* __SYSTICK_H */
