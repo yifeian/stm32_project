@@ -47,10 +47,6 @@
 */
 
 
-
-
-static void BSP_LED_Init(void);
-
 /*
 *********************************************************************************************************
 *                                           LOCAL CONSTANTS
@@ -221,8 +217,6 @@ static void BSP_LED_Init(void);
 *********************************************************************************************************
 */
 
-static  void  BSP_LED_Init  (void);
-
 
 /*
 *********************************************************************************************************
@@ -251,7 +245,9 @@ static  void  BSP_LED_Init  (void);
 
 void  BSP_Init (void)
 {
-	LED_Init(); //初始化led
+	USARTx_Config ();    //初始化 USART1
+	LED_GPIO_Config();
+	SDRAM_Init();
 }
 
 
@@ -313,263 +309,6 @@ void  BSP_Tick_Init (void)
 #endif
     
     OS_CPU_SysTickInit(cnts);                                   /* Init uC/OS periodic time src (SysTick).              */
-}
-
-
-/*
-*********************************************************************************************************
-*                                           BSP_LED_Init()
-*
-* Description : Initialize any or all the LEDs on the board.
-*
-* Argument(s) : led     The ID of the LED to control:
-*
-*                       0    initialize ALL  LEDs
-*                       1    initialize user LED1
-*                       2    initialize user LED2
-*                       3    initialize user LED3
-*                       4    initialize user LED4
-*
-* Return(s)   : none.
-*
-* Caller(s)   : Application.
-*
-* Note(s)     : The LED pins are active-low on the STM32F429II-SK board
-*********************************************************************************************************
-*/
-
-static void  BSP_LED_Init()
-{
-    GPIO_InitTypeDef  gpio_init;
-
-                                                                /* Configure GPIOA for LED1                             */
-    BSP_PeriphEn(BSP_PERIPH_ID_GPIOA);
-    gpio_init.GPIO_Pin   = BSP_GPIOA_LED1;
-    gpio_init.GPIO_Mode  = GPIO_Mode_OUT;
-    gpio_init.GPIO_OType = GPIO_OType_PP;
-    gpio_init.GPIO_PuPd  = GPIO_PuPd_UP;
-    gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOA, &gpio_init);
-                                                                /* Configure GPIOA for LED2                             */
-    BSP_PeriphEn(BSP_PERIPH_ID_GPIOG);
-    gpio_init.GPIO_Pin   = BSP_GPIOG_LED2;
-    gpio_init.GPIO_Mode  = GPIO_Mode_OUT;
-    gpio_init.GPIO_OType = GPIO_OType_PP;
-    gpio_init.GPIO_PuPd  = GPIO_PuPd_UP;
-    gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOG, &gpio_init);
-
-    BSP_PeriphEn(BSP_PERIPH_ID_GPIOE);
-                                                                /* Configure GPIOE for LED3 and LED4                    */
-    gpio_init.GPIO_Pin = (BSP_GPIOE_LED3 | BSP_GPIOE_LED4);
-    gpio_init.GPIO_Mode  = GPIO_Mode_OUT;
-    gpio_init.GPIO_OType = GPIO_OType_PP;
-    gpio_init.GPIO_PuPd  = GPIO_PuPd_UP;
-    gpio_init.GPIO_Speed = GPIO_Speed_50MHz;
-
-    GPIO_Init(GPIOE, &gpio_init);
-}
-
-
-/*
-*********************************************************************************************************
-*                                              BSP_LED_Off()
-*
-* Description : Turn OFF any or all the LEDs on the board.
-*
-* Argument(s) : led     The ID of the LED to control:
-*
-*                       0    turns OFF ALL the LEDs
-*                       1    turns OFF user LED1
-*                       2    turns OFF user LED2
-*                       3    turns OFF user LED3
-*                       4    turns OFF user LED4
-*
-* Return(s)   : none.
-*
-* Caller(s)   : Application.
-*
-* Note(s)     : none.
-*********************************************************************************************************
-*/
-
-void  BSP_LED_Off (CPU_INT08U  led)
-{
-    switch (led) {
-        case 0u:
-             GPIO_SetBits(GPIOA, BSP_GPIOA_LED1);
-             GPIO_SetBits(GPIOG, BSP_GPIOG_LED2);
-             GPIO_SetBits(GPIOE, BSP_GPIOE_LED3);
-             GPIO_SetBits(GPIOE, BSP_GPIOE_LED4);
-             break;
-
-
-        case 1u:
-             GPIO_SetBits(GPIOA, BSP_GPIOA_LED1);
-             break;
-
-
-        case 2u:
-             GPIO_SetBits(GPIOG, BSP_GPIOG_LED2);
-             break;
-
-
-        case 3u:
-             GPIO_SetBits(GPIOE, BSP_GPIOE_LED3);
-             break;
-
-
-        case 4u:
-             GPIO_SetBits(GPIOE, BSP_GPIOE_LED4);
-             break;
-
-
-        default:
-             break;
-    }
-}
-
-
-/*
-*********************************************************************************************************
-*                                             BSP_LED_On()
-*
-* Description : Turn ON any or all the LEDs on the board.
-*
-* Argument(s) : led     The ID of the LED to control:
-*
-*                       0    turns ON ALL  LEDs
-*                       1    turns ON user LED1
-*                       2    turns ON user LED2
-*                       3    turns ON user LED3
-*                       4    turns ON user LED4
-*
-* Return(s)   : none.
-*
-* Caller(s)   : Application.
-*
-* Note(s)     : none.
-*********************************************************************************************************
-*/
-
-void  BSP_LED_On (CPU_INT08U led)
-{
-    switch (led) {
-        case 0u:
-             GPIO_ResetBits(GPIOA, BSP_GPIOA_LED1);
-             GPIO_ResetBits(GPIOG, BSP_GPIOG_LED2);
-             GPIO_ResetBits(GPIOE, BSP_GPIOE_LED3);
-             GPIO_ResetBits(GPIOE, BSP_GPIOE_LED4);
-             break;
-
-
-        case 1u:
-             GPIO_ResetBits(GPIOA, BSP_GPIOA_LED1);
-             break;
-
-
-        case 2u:
-             GPIO_ResetBits(GPIOG, BSP_GPIOG_LED2);
-             break;
-
-
-        case 3u:
-             GPIO_ResetBits(GPIOE, BSP_GPIOE_LED3);
-             break;
-
-
-        case 4u:
-             GPIO_ResetBits(GPIOE, BSP_GPIOE_LED4);
-             break;
-
-
-        default:
-             break;
-    }
-}
-
-
-/*
-*********************************************************************************************************
-*                                            BSP_LED_Toggle()
-*
-* Description : TOGGLE any or all the LEDs on the board.
-*
-* Argument(s) : led     The ID of the LED to control:
-*
-*                       0    TOGGLE ALL the LEDs
-*                       1    TOGGLE user LED1
-*                       2    TOGGLE user LED2
-*                       3    TOGGLE user LED3
-*                       4    TOGGLE user LED4
-*
-* Return(s)   : none.
-*
-* Caller(s)   : Application.
-*
-* Note(s)     : none.
-*********************************************************************************************************
-*/
-
-void  BSP_LED_Toggle (CPU_INT08U  led)
-{
-    CPU_INT32U  pins;
-
-
-    switch (led) {
-        case 0u:
-             pins  =  GPIO_ReadOutputData(GPIOA);               /* Read data (current state of output pins) in GPIOA    */
-             pins ^=  BSP_GPIOA_LED1;                           /* Tells which pins (other than pin for LED1) are ON    */
-             GPIO_SetBits(  GPIOA,   pins  &  BSP_GPIOA_LED1);  /* If there are any,turn them OFF and leave LED1 ON     */
-             GPIO_ResetBits(GPIOA, (~pins) &  BSP_GPIOA_LED1);
-
-             pins  =  GPIO_ReadOutputData(GPIOG);
-             pins ^=  BSP_GPIOG_LED2;
-             GPIO_SetBits(  GPIOG,   pins  &  BSP_GPIOG_LED2);
-             GPIO_ResetBits(GPIOG, (~pins) &  BSP_GPIOG_LED2);
-
-             pins  =  GPIO_ReadOutputData(GPIOE);
-             pins ^= (BSP_GPIOE_LED3       |  BSP_GPIOE_LED4);
-             GPIO_SetBits(  GPIOE,   pins  & (BSP_GPIOE_LED3  |  BSP_GPIOE_LED4));
-             GPIO_ResetBits(GPIOE, (~pins) & (BSP_GPIOE_LED3  |  BSP_GPIOE_LED4));
-             break;
-
-
-        case 1u:
-             pins  = GPIO_ReadOutputData(GPIOA);
-             pins ^= BSP_GPIOA_LED1;
-             GPIO_SetBits(  GPIOA,   pins   &  BSP_GPIOA_LED1);
-             GPIO_ResetBits(GPIOA, (~pins)  &  BSP_GPIOA_LED1);
-             break;
-
-
-        case 2u:
-             pins  = GPIO_ReadOutputData(GPIOG);
-             pins ^= BSP_GPIOG_LED2;
-             GPIO_SetBits(  GPIOG,   pins   &  BSP_GPIOG_LED2);
-             GPIO_ResetBits(GPIOG, (~pins)  &  BSP_GPIOG_LED2);
-             break;
-
-
-        case 3u:
-             pins  = GPIO_ReadOutputData(GPIOE);
-             pins ^= BSP_GPIOE_LED3;
-             GPIO_SetBits(  GPIOE,   pins   &  BSP_GPIOE_LED3);
-             GPIO_ResetBits(GPIOE, (~pins)  &  BSP_GPIOE_LED3);
-             break;
-
-
-        case 4u:
-             pins  = GPIO_ReadOutputData(GPIOE);
-             pins ^= BSP_GPIOE_LED4;
-             GPIO_SetBits(  GPIOE,   pins   &  BSP_GPIOE_LED4);
-             GPIO_ResetBits(GPIOE, (~pins)  &  BSP_GPIOE_LED4);
-             break;
-
-
-        default:
-             break;
-    }
 }
 
 

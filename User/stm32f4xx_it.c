@@ -140,10 +140,8 @@ void PendSV_Handler(void)
   * @param  None
   * @retval None
   */
-extern void TimingDelay_Decrement(void);
 void SysTick_Handler(void)
 {
-	TimingDelay_Decrement();
 }
 
 /******************************************************************************/

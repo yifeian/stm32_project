@@ -134,9 +134,9 @@ ARM Macro Assembler    Page 2
 ARM Macro Assembler    Page 3 
 
 
-   83 00000038 00000000        DCD              PendSV_Handler ; PendSV Handler
-                                                            
-   84 0000003C 00000000        DCD              SysTick_Handler 
+   83 00000038 00000000        DCD              OS_CPU_PendSVHandler 
+                                                            ; PendSV Handler
+   84 0000003C 00000000        DCD              OS_CPU_SysTickHandler 
                                                             ; SysTick Handler
    85 00000040         
    86 00000040         ; External Interrupts
@@ -492,404 +492,441 @@ ARM Macro Assembler    Page 8
   188 00000000                 IMPORT           SystemInit
   189 00000000                 IMPORT           __main
   190 00000000         
-  191 00000000 4806            LDR              R0, =SystemInit
-  192 00000002 4780            BLX              R0
-  193 00000004 4806            LDR              R0, =__main
-  194 00000006 4700            BX               R0
-  195 00000008                 ENDP
-  196 00000008         
-  197 00000008         ; Dummy Exception Handlers (infinite loops which can be 
-                       modified)
-  198 00000008         
-  199 00000008         NMI_Handler
-                               PROC
-  200 00000008                 EXPORT           NMI_Handler                [WEA
-K]
-  201 00000008 E7FE            B                .
-  202 0000000A                 ENDP
-  204 0000000A         HardFault_Handler
-                               PROC
-  205 0000000A                 EXPORT           HardFault_Handler          [WEA
-K]
-  206 0000000A E7FE            B                .
-  207 0000000C                 ENDP
-  209 0000000C         MemManage_Handler
-                               PROC
-  210 0000000C                 EXPORT           MemManage_Handler          [WEA
-K]
-  211 0000000C E7FE            B                .
+  191 00000000                 IF               {FPU} != "SoftVFP"
+  192 00000000         ; Enable Floating Point Support at reset for FPU
+  193 00000000 F8DF 0038       LDR.W            R0, =0xE000ED88 ; Load address 
+                                                            of CPACR register
+  194 00000004 6801            LDR              R1, [R0]    ; Read value at CPA
+                                                            CR
+  195 00000006 F441 0170       ORR              R1,  R1, #(0xF <<20) ; Set bits
+                                                             20-23 to enable CP
+                                                            10 and CP11 coproce
+                                                            ssors
+  196 0000000A         ; Write back the modified CPACR value
+  197 0000000A 6001            STR              R1, [R0]    ; Wait for store to
+                                                             complete
+  198 0000000C F3BF 8F4F       DSB
+  199 00000010         
+  200 00000010         ; Disable automatic FP register content
+  201 00000010         ; Disable lazy context switch
+  202 00000010 F8DF 002C       LDR.W            R0, =0xE000EF34 ; Load address 
+                                                            to FPCCR register
+  203 00000014 6801            LDR              R1, [R0]
+  204 00000016 F021 4140       AND              R1,  R1, #(0x3FFFFFFF) ; Clear 
+                                                            the LSPEN and ASPEN
+                                                             bits
+  205 0000001A 6001            STR              R1, [R0]
+  206 0000001C F3BF 8F6F       ISB                          ; Reset pipeline no
+                                                            w the FPU is enable
 
 
 
 ARM Macro Assembler    Page 9 
 
 
-  212 0000000E                 ENDP
-  214 0000000E         BusFault_Handler
+                                                            d
+  207 00000020                 ENDIF
+  208 00000020         
+  209 00000020 4808            LDR              R0, =SystemInit
+  210 00000022 4780            BLX              R0
+  211 00000024 4808            LDR              R0, =__main
+  212 00000026 4700            BX               R0
+  213 00000028                 ENDP
+  214 00000028         
+  215 00000028         ; Dummy Exception Handlers (infinite loops which can be 
+                       modified)
+  216 00000028         
+  217 00000028         NMI_Handler
                                PROC
-  215 0000000E                 EXPORT           BusFault_Handler           [WEA
+  218 00000028                 EXPORT           NMI_Handler                [WEA
 K]
-  216 0000000E E7FE            B                .
-  217 00000010                 ENDP
-  219 00000010         UsageFault_Handler
+  219 00000028 E7FE            B                .
+  220 0000002A                 ENDP
+  222 0000002A         HardFault_Handler
                                PROC
-  220 00000010                 EXPORT           UsageFault_Handler         [WEA
+  223 0000002A                 EXPORT           HardFault_Handler          [WEA
 K]
-  221 00000010 E7FE            B                .
-  222 00000012                 ENDP
-  223 00000012         SVC_Handler
+  224 0000002A E7FE            B                .
+  225 0000002C                 ENDP
+  227 0000002C         MemManage_Handler
                                PROC
-  224 00000012                 EXPORT           SVC_Handler                [WEA
+  228 0000002C                 EXPORT           MemManage_Handler          [WEA
 K]
-  225 00000012 E7FE            B                .
-  226 00000014                 ENDP
-  228 00000014         DebugMon_Handler
+  229 0000002C E7FE            B                .
+  230 0000002E                 ENDP
+  232 0000002E         BusFault_Handler
                                PROC
-  229 00000014                 EXPORT           DebugMon_Handler           [WEA
+  233 0000002E                 EXPORT           BusFault_Handler           [WEA
 K]
-  230 00000014 E7FE            B                .
-  231 00000016                 ENDP
-  232 00000016         PendSV_Handler
+  234 0000002E E7FE            B                .
+  235 00000030                 ENDP
+  237 00000030         UsageFault_Handler
                                PROC
-  233 00000016                 EXPORT           PendSV_Handler             [WEA
+  238 00000030                 EXPORT           UsageFault_Handler         [WEA
 K]
-  234 00000016 E7FE            B                .
-  235 00000018                 ENDP
-  236 00000018         SysTick_Handler
+  239 00000030 E7FE            B                .
+  240 00000032                 ENDP
+  241 00000032         SVC_Handler
                                PROC
-  237 00000018                 EXPORT           SysTick_Handler            [WEA
+  242 00000032                 EXPORT           SVC_Handler                [WEA
 K]
-  238 00000018 E7FE            B                .
-  239 0000001A                 ENDP
-  240 0000001A         
-  241 0000001A         Default_Handler
+  243 00000032 E7FE            B                .
+  244 00000034                 ENDP
+  246 00000034         DebugMon_Handler
                                PROC
-  242 0000001A         
-  243 0000001A                 EXPORT           WWDG_IRQHandler                
-   [WEAK]
-  244 0000001A                 EXPORT           PVD_IRQHandler                 
-   [WEAK]
-  245 0000001A                 EXPORT           TAMP_STAMP_IRQHandler          
-   [WEAK]
-  246 0000001A                 EXPORT           RTC_WKUP_IRQHandler            
-   [WEAK]
-  247 0000001A                 EXPORT           FLASH_IRQHandler               
-   [WEAK]
-  248 0000001A                 EXPORT           RCC_IRQHandler                 
-   [WEAK]
-  249 0000001A                 EXPORT           EXTI0_IRQHandler               
-   [WEAK]
-  250 0000001A                 EXPORT           EXTI1_IRQHandler               
-   [WEAK]
-  251 0000001A                 EXPORT           EXTI2_IRQHandler               
-   [WEAK]
+  247 00000034                 EXPORT           DebugMon_Handler           [WEA
+K]
+  248 00000034 E7FE            B                .
+  249 00000036                 ENDP
+  250 00000036         OS_CPU_PendSVHandler
+                               PROC
+  251 00000036                 EXPORT           OS_CPU_PendSVHandler           
+  [WEAK]
+  252 00000036 E7FE            B                .
 
 
 
 ARM Macro Assembler    Page 10 
 
 
-  252 0000001A                 EXPORT           EXTI3_IRQHandler               
+  253 00000038                 ENDP
+  254 00000038         OS_CPU_SysTickHandler
+                               PROC
+  255 00000038                 EXPORT           OS_CPU_SysTickHandler          
+  [WEAK]
+  256 00000038 E7FE            B                .
+  257 0000003A                 ENDP
+  258 0000003A         
+  259 0000003A         Default_Handler
+                               PROC
+  260 0000003A         
+  261 0000003A                 EXPORT           WWDG_IRQHandler                
    [WEAK]
-  253 0000001A                 EXPORT           EXTI4_IRQHandler               
+  262 0000003A                 EXPORT           PVD_IRQHandler                 
    [WEAK]
-  254 0000001A                 EXPORT           DMA1_Stream0_IRQHandler        
+  263 0000003A                 EXPORT           TAMP_STAMP_IRQHandler          
    [WEAK]
-  255 0000001A                 EXPORT           DMA1_Stream1_IRQHandler        
+  264 0000003A                 EXPORT           RTC_WKUP_IRQHandler            
    [WEAK]
-  256 0000001A                 EXPORT           DMA1_Stream2_IRQHandler        
+  265 0000003A                 EXPORT           FLASH_IRQHandler               
    [WEAK]
-  257 0000001A                 EXPORT           DMA1_Stream3_IRQHandler        
+  266 0000003A                 EXPORT           RCC_IRQHandler                 
    [WEAK]
-  258 0000001A                 EXPORT           DMA1_Stream4_IRQHandler        
+  267 0000003A                 EXPORT           EXTI0_IRQHandler               
    [WEAK]
-  259 0000001A                 EXPORT           DMA1_Stream5_IRQHandler        
+  268 0000003A                 EXPORT           EXTI1_IRQHandler               
    [WEAK]
-  260 0000001A                 EXPORT           DMA1_Stream6_IRQHandler        
+  269 0000003A                 EXPORT           EXTI2_IRQHandler               
    [WEAK]
-  261 0000001A                 EXPORT           ADC_IRQHandler                 
+  270 0000003A                 EXPORT           EXTI3_IRQHandler               
    [WEAK]
-  262 0000001A                 EXPORT           CAN1_TX_IRQHandler             
+  271 0000003A                 EXPORT           EXTI4_IRQHandler               
    [WEAK]
-  263 0000001A                 EXPORT           CAN1_RX0_IRQHandler            
+  272 0000003A                 EXPORT           DMA1_Stream0_IRQHandler        
    [WEAK]
-  264 0000001A                 EXPORT           CAN1_RX1_IRQHandler            
+  273 0000003A                 EXPORT           DMA1_Stream1_IRQHandler        
    [WEAK]
-  265 0000001A                 EXPORT           CAN1_SCE_IRQHandler            
+  274 0000003A                 EXPORT           DMA1_Stream2_IRQHandler        
    [WEAK]
-  266 0000001A                 EXPORT           EXTI9_5_IRQHandler             
+  275 0000003A                 EXPORT           DMA1_Stream3_IRQHandler        
    [WEAK]
-  267 0000001A                 EXPORT           TIM1_BRK_TIM9_IRQHandler       
+  276 0000003A                 EXPORT           DMA1_Stream4_IRQHandler        
    [WEAK]
-  268 0000001A                 EXPORT           TIM1_UP_TIM10_IRQHandler       
+  277 0000003A                 EXPORT           DMA1_Stream5_IRQHandler        
    [WEAK]
-  269 0000001A                 EXPORT           TIM1_TRG_COM_TIM11_IRQHandler  
+  278 0000003A                 EXPORT           DMA1_Stream6_IRQHandler        
    [WEAK]
-  270 0000001A                 EXPORT           TIM1_CC_IRQHandler             
+  279 0000003A                 EXPORT           ADC_IRQHandler                 
    [WEAK]
-  271 0000001A                 EXPORT           TIM2_IRQHandler                
+  280 0000003A                 EXPORT           CAN1_TX_IRQHandler             
    [WEAK]
-  272 0000001A                 EXPORT           TIM3_IRQHandler                
+  281 0000003A                 EXPORT           CAN1_RX0_IRQHandler            
    [WEAK]
-  273 0000001A                 EXPORT           TIM4_IRQHandler                
+  282 0000003A                 EXPORT           CAN1_RX1_IRQHandler            
    [WEAK]
-  274 0000001A                 EXPORT           I2C1_EV_IRQHandler             
+  283 0000003A                 EXPORT           CAN1_SCE_IRQHandler            
    [WEAK]
-  275 0000001A                 EXPORT           I2C1_ER_IRQHandler             
+  284 0000003A                 EXPORT           EXTI9_5_IRQHandler             
    [WEAK]
-  276 0000001A                 EXPORT           I2C2_EV_IRQHandler             
-   [WEAK]
-  277 0000001A                 EXPORT           I2C2_ER_IRQHandler             
-   [WEAK]
-  278 0000001A                 EXPORT           SPI1_IRQHandler                
-   [WEAK]
-  279 0000001A                 EXPORT           SPI2_IRQHandler                
-   [WEAK]
-  280 0000001A                 EXPORT           USART1_IRQHandler              
-   [WEAK]
-  281 0000001A                 EXPORT           USART2_IRQHandler              
 
 
 
 ARM Macro Assembler    Page 11 
 
 
+  285 0000003A                 EXPORT           TIM1_BRK_TIM9_IRQHandler       
    [WEAK]
-  282 0000001A                 EXPORT           USART3_IRQHandler              
+  286 0000003A                 EXPORT           TIM1_UP_TIM10_IRQHandler       
    [WEAK]
-  283 0000001A                 EXPORT           EXTI15_10_IRQHandler           
+  287 0000003A                 EXPORT           TIM1_TRG_COM_TIM11_IRQHandler  
    [WEAK]
-  284 0000001A                 EXPORT           RTC_Alarm_IRQHandler           
+  288 0000003A                 EXPORT           TIM1_CC_IRQHandler             
    [WEAK]
-  285 0000001A                 EXPORT           OTG_FS_WKUP_IRQHandler         
+  289 0000003A                 EXPORT           TIM2_IRQHandler                
    [WEAK]
-  286 0000001A                 EXPORT           TIM8_BRK_TIM12_IRQHandler      
+  290 0000003A                 EXPORT           TIM3_IRQHandler                
    [WEAK]
-  287 0000001A                 EXPORT           TIM8_UP_TIM13_IRQHandler       
+  291 0000003A                 EXPORT           TIM4_IRQHandler                
    [WEAK]
-  288 0000001A                 EXPORT           TIM8_TRG_COM_TIM14_IRQHandler  
+  292 0000003A                 EXPORT           I2C1_EV_IRQHandler             
    [WEAK]
-  289 0000001A                 EXPORT           TIM8_CC_IRQHandler             
+  293 0000003A                 EXPORT           I2C1_ER_IRQHandler             
    [WEAK]
-  290 0000001A                 EXPORT           DMA1_Stream7_IRQHandler        
+  294 0000003A                 EXPORT           I2C2_EV_IRQHandler             
    [WEAK]
-  291 0000001A                 EXPORT           FMC_IRQHandler                 
+  295 0000003A                 EXPORT           I2C2_ER_IRQHandler             
    [WEAK]
-  292 0000001A                 EXPORT           SDIO_IRQHandler                
+  296 0000003A                 EXPORT           SPI1_IRQHandler                
    [WEAK]
-  293 0000001A                 EXPORT           TIM5_IRQHandler                
+  297 0000003A                 EXPORT           SPI2_IRQHandler                
    [WEAK]
-  294 0000001A                 EXPORT           SPI3_IRQHandler                
+  298 0000003A                 EXPORT           USART1_IRQHandler              
    [WEAK]
-  295 0000001A                 EXPORT           UART4_IRQHandler               
+  299 0000003A                 EXPORT           USART2_IRQHandler              
    [WEAK]
-  296 0000001A                 EXPORT           UART5_IRQHandler               
+  300 0000003A                 EXPORT           USART3_IRQHandler              
    [WEAK]
-  297 0000001A                 EXPORT           TIM6_DAC_IRQHandler            
+  301 0000003A                 EXPORT           EXTI15_10_IRQHandler           
    [WEAK]
-  298 0000001A                 EXPORT           TIM7_IRQHandler                
+  302 0000003A                 EXPORT           RTC_Alarm_IRQHandler           
    [WEAK]
-  299 0000001A                 EXPORT           DMA2_Stream0_IRQHandler        
+  303 0000003A                 EXPORT           OTG_FS_WKUP_IRQHandler         
    [WEAK]
-  300 0000001A                 EXPORT           DMA2_Stream1_IRQHandler        
+  304 0000003A                 EXPORT           TIM8_BRK_TIM12_IRQHandler      
    [WEAK]
-  301 0000001A                 EXPORT           DMA2_Stream2_IRQHandler        
+  305 0000003A                 EXPORT           TIM8_UP_TIM13_IRQHandler       
    [WEAK]
-  302 0000001A                 EXPORT           DMA2_Stream3_IRQHandler        
+  306 0000003A                 EXPORT           TIM8_TRG_COM_TIM14_IRQHandler  
    [WEAK]
-  303 0000001A                 EXPORT           DMA2_Stream4_IRQHandler        
+  307 0000003A                 EXPORT           TIM8_CC_IRQHandler             
    [WEAK]
-  304 0000001A                 EXPORT           ETH_IRQHandler                 
+  308 0000003A                 EXPORT           DMA1_Stream7_IRQHandler        
    [WEAK]
-  305 0000001A                 EXPORT           ETH_WKUP_IRQHandler            
+  309 0000003A                 EXPORT           FMC_IRQHandler                 
    [WEAK]
-  306 0000001A                 EXPORT           CAN2_TX_IRQHandler             
+  310 0000003A                 EXPORT           SDIO_IRQHandler                
    [WEAK]
-  307 0000001A                 EXPORT           CAN2_RX0_IRQHandler            
+  311 0000003A                 EXPORT           TIM5_IRQHandler                
    [WEAK]
-  308 0000001A                 EXPORT           CAN2_RX1_IRQHandler            
+  312 0000003A                 EXPORT           SPI3_IRQHandler                
    [WEAK]
-  309 0000001A                 EXPORT           CAN2_SCE_IRQHandler            
+  313 0000003A                 EXPORT           UART4_IRQHandler               
    [WEAK]
-  310 0000001A                 EXPORT           OTG_FS_IRQHandler              
-   [WEAK]
+  314 0000003A                 EXPORT           UART5_IRQHandler               
 
 
 
 ARM Macro Assembler    Page 12 
 
 
-  311 0000001A                 EXPORT           DMA2_Stream5_IRQHandler        
    [WEAK]
-  312 0000001A                 EXPORT           DMA2_Stream6_IRQHandler        
+  315 0000003A                 EXPORT           TIM6_DAC_IRQHandler            
    [WEAK]
-  313 0000001A                 EXPORT           DMA2_Stream7_IRQHandler        
+  316 0000003A                 EXPORT           TIM7_IRQHandler                
    [WEAK]
-  314 0000001A                 EXPORT           USART6_IRQHandler              
+  317 0000003A                 EXPORT           DMA2_Stream0_IRQHandler        
    [WEAK]
-  315 0000001A                 EXPORT           I2C3_EV_IRQHandler             
+  318 0000003A                 EXPORT           DMA2_Stream1_IRQHandler        
    [WEAK]
-  316 0000001A                 EXPORT           I2C3_ER_IRQHandler             
+  319 0000003A                 EXPORT           DMA2_Stream2_IRQHandler        
    [WEAK]
-  317 0000001A                 EXPORT           OTG_HS_EP1_OUT_IRQHandler      
+  320 0000003A                 EXPORT           DMA2_Stream3_IRQHandler        
    [WEAK]
-  318 0000001A                 EXPORT           OTG_HS_EP1_IN_IRQHandler       
+  321 0000003A                 EXPORT           DMA2_Stream4_IRQHandler        
    [WEAK]
-  319 0000001A                 EXPORT           OTG_HS_WKUP_IRQHandler         
+  322 0000003A                 EXPORT           ETH_IRQHandler                 
    [WEAK]
-  320 0000001A                 EXPORT           OTG_HS_IRQHandler              
+  323 0000003A                 EXPORT           ETH_WKUP_IRQHandler            
    [WEAK]
-  321 0000001A                 EXPORT           DCMI_IRQHandler                
+  324 0000003A                 EXPORT           CAN2_TX_IRQHandler             
    [WEAK]
-  322 0000001A                 EXPORT           CRYP_IRQHandler                
+  325 0000003A                 EXPORT           CAN2_RX0_IRQHandler            
    [WEAK]
-  323 0000001A                 EXPORT           HASH_RNG_IRQHandler            
+  326 0000003A                 EXPORT           CAN2_RX1_IRQHandler            
    [WEAK]
-  324 0000001A                 EXPORT           FPU_IRQHandler                 
+  327 0000003A                 EXPORT           CAN2_SCE_IRQHandler            
    [WEAK]
-  325 0000001A                 EXPORT           UART7_IRQHandler               
+  328 0000003A                 EXPORT           OTG_FS_IRQHandler              
    [WEAK]
-  326 0000001A                 EXPORT           UART8_IRQHandler               
+  329 0000003A                 EXPORT           DMA2_Stream5_IRQHandler        
    [WEAK]
-  327 0000001A                 EXPORT           SPI4_IRQHandler                
+  330 0000003A                 EXPORT           DMA2_Stream6_IRQHandler        
    [WEAK]
-  328 0000001A                 EXPORT           SPI5_IRQHandler                
+  331 0000003A                 EXPORT           DMA2_Stream7_IRQHandler        
    [WEAK]
-  329 0000001A                 EXPORT           SPI6_IRQHandler                
+  332 0000003A                 EXPORT           USART6_IRQHandler              
    [WEAK]
-  330 0000001A                 EXPORT           SAI1_IRQHandler                
+  333 0000003A                 EXPORT           I2C3_EV_IRQHandler             
    [WEAK]
-  331 0000001A                 EXPORT           LTDC_IRQHandler                
+  334 0000003A                 EXPORT           I2C3_ER_IRQHandler             
    [WEAK]
-  332 0000001A                 EXPORT           LTDC_ER_IRQHandler             
+  335 0000003A                 EXPORT           OTG_HS_EP1_OUT_IRQHandler      
    [WEAK]
-  333 0000001A                 EXPORT           DMA2D_IRQHandler               
+  336 0000003A                 EXPORT           OTG_HS_EP1_IN_IRQHandler       
    [WEAK]
-  334 0000001A         
-  335 0000001A         WWDG_IRQHandler
-  336 0000001A         PVD_IRQHandler
-  337 0000001A         TAMP_STAMP_IRQHandler
-  338 0000001A         RTC_WKUP_IRQHandler
-  339 0000001A         FLASH_IRQHandler
-  340 0000001A         RCC_IRQHandler
-  341 0000001A         EXTI0_IRQHandler
-  342 0000001A         EXTI1_IRQHandler
-  343 0000001A         EXTI2_IRQHandler
-  344 0000001A         EXTI3_IRQHandler
-  345 0000001A         EXTI4_IRQHandler
-  346 0000001A         DMA1_Stream0_IRQHandler
+  337 0000003A                 EXPORT           OTG_HS_WKUP_IRQHandler         
+   [WEAK]
+  338 0000003A                 EXPORT           OTG_HS_IRQHandler              
+   [WEAK]
+  339 0000003A                 EXPORT           DCMI_IRQHandler                
+   [WEAK]
+  340 0000003A                 EXPORT           CRYP_IRQHandler                
+   [WEAK]
+  341 0000003A                 EXPORT           HASH_RNG_IRQHandler            
+   [WEAK]
+  342 0000003A                 EXPORT           FPU_IRQHandler                 
+   [WEAK]
+  343 0000003A                 EXPORT           UART7_IRQHandler               
+   [WEAK]
 
 
 
 ARM Macro Assembler    Page 13 
 
 
-  347 0000001A         DMA1_Stream1_IRQHandler
-  348 0000001A         DMA1_Stream2_IRQHandler
-  349 0000001A         DMA1_Stream3_IRQHandler
-  350 0000001A         DMA1_Stream4_IRQHandler
-  351 0000001A         DMA1_Stream5_IRQHandler
-  352 0000001A         DMA1_Stream6_IRQHandler
-  353 0000001A         ADC_IRQHandler
-  354 0000001A         CAN1_TX_IRQHandler
-  355 0000001A         CAN1_RX0_IRQHandler
-  356 0000001A         CAN1_RX1_IRQHandler
-  357 0000001A         CAN1_SCE_IRQHandler
-  358 0000001A         EXTI9_5_IRQHandler
-  359 0000001A         TIM1_BRK_TIM9_IRQHandler
-  360 0000001A         TIM1_UP_TIM10_IRQHandler
-  361 0000001A         TIM1_TRG_COM_TIM11_IRQHandler
-  362 0000001A         TIM1_CC_IRQHandler
-  363 0000001A         TIM2_IRQHandler
-  364 0000001A         TIM3_IRQHandler
-  365 0000001A         TIM4_IRQHandler
-  366 0000001A         I2C1_EV_IRQHandler
-  367 0000001A         I2C1_ER_IRQHandler
-  368 0000001A         I2C2_EV_IRQHandler
-  369 0000001A         I2C2_ER_IRQHandler
-  370 0000001A         SPI1_IRQHandler
-  371 0000001A         SPI2_IRQHandler
-  372 0000001A         USART1_IRQHandler
-  373 0000001A         USART2_IRQHandler
-  374 0000001A         USART3_IRQHandler
-  375 0000001A         EXTI15_10_IRQHandler
-  376 0000001A         RTC_Alarm_IRQHandler
-  377 0000001A         OTG_FS_WKUP_IRQHandler
-  378 0000001A         TIM8_BRK_TIM12_IRQHandler
-  379 0000001A         TIM8_UP_TIM13_IRQHandler
-  380 0000001A         TIM8_TRG_COM_TIM14_IRQHandler
-  381 0000001A         TIM8_CC_IRQHandler
-  382 0000001A         DMA1_Stream7_IRQHandler
-  383 0000001A         FMC_IRQHandler
-  384 0000001A         SDIO_IRQHandler
-  385 0000001A         TIM5_IRQHandler
-  386 0000001A         SPI3_IRQHandler
-  387 0000001A         UART4_IRQHandler
-  388 0000001A         UART5_IRQHandler
-  389 0000001A         TIM6_DAC_IRQHandler
-  390 0000001A         TIM7_IRQHandler
-  391 0000001A         DMA2_Stream0_IRQHandler
-  392 0000001A         DMA2_Stream1_IRQHandler
-  393 0000001A         DMA2_Stream2_IRQHandler
-  394 0000001A         DMA2_Stream3_IRQHandler
-  395 0000001A         DMA2_Stream4_IRQHandler
-  396 0000001A         ETH_IRQHandler
-  397 0000001A         ETH_WKUP_IRQHandler
-  398 0000001A         CAN2_TX_IRQHandler
-  399 0000001A         CAN2_RX0_IRQHandler
-  400 0000001A         CAN2_RX1_IRQHandler
-  401 0000001A         CAN2_SCE_IRQHandler
-  402 0000001A         OTG_FS_IRQHandler
-  403 0000001A         DMA2_Stream5_IRQHandler
-  404 0000001A         DMA2_Stream6_IRQHandler
-  405 0000001A         DMA2_Stream7_IRQHandler
+  344 0000003A                 EXPORT           UART8_IRQHandler               
+   [WEAK]
+  345 0000003A                 EXPORT           SPI4_IRQHandler                
+   [WEAK]
+  346 0000003A                 EXPORT           SPI5_IRQHandler                
+   [WEAK]
+  347 0000003A                 EXPORT           SPI6_IRQHandler                
+   [WEAK]
+  348 0000003A                 EXPORT           SAI1_IRQHandler                
+   [WEAK]
+  349 0000003A                 EXPORT           LTDC_IRQHandler                
+   [WEAK]
+  350 0000003A                 EXPORT           LTDC_ER_IRQHandler             
+   [WEAK]
+  351 0000003A                 EXPORT           DMA2D_IRQHandler               
+   [WEAK]
+  352 0000003A         
+  353 0000003A         WWDG_IRQHandler
+  354 0000003A         PVD_IRQHandler
+  355 0000003A         TAMP_STAMP_IRQHandler
+  356 0000003A         RTC_WKUP_IRQHandler
+  357 0000003A         FLASH_IRQHandler
+  358 0000003A         RCC_IRQHandler
+  359 0000003A         EXTI0_IRQHandler
+  360 0000003A         EXTI1_IRQHandler
+  361 0000003A         EXTI2_IRQHandler
+  362 0000003A         EXTI3_IRQHandler
+  363 0000003A         EXTI4_IRQHandler
+  364 0000003A         DMA1_Stream0_IRQHandler
+  365 0000003A         DMA1_Stream1_IRQHandler
+  366 0000003A         DMA1_Stream2_IRQHandler
+  367 0000003A         DMA1_Stream3_IRQHandler
+  368 0000003A         DMA1_Stream4_IRQHandler
+  369 0000003A         DMA1_Stream5_IRQHandler
+  370 0000003A         DMA1_Stream6_IRQHandler
+  371 0000003A         ADC_IRQHandler
+  372 0000003A         CAN1_TX_IRQHandler
+  373 0000003A         CAN1_RX0_IRQHandler
+  374 0000003A         CAN1_RX1_IRQHandler
+  375 0000003A         CAN1_SCE_IRQHandler
+  376 0000003A         EXTI9_5_IRQHandler
+  377 0000003A         TIM1_BRK_TIM9_IRQHandler
+  378 0000003A         TIM1_UP_TIM10_IRQHandler
+  379 0000003A         TIM1_TRG_COM_TIM11_IRQHandler
+  380 0000003A         TIM1_CC_IRQHandler
+  381 0000003A         TIM2_IRQHandler
+  382 0000003A         TIM3_IRQHandler
+  383 0000003A         TIM4_IRQHandler
+  384 0000003A         I2C1_EV_IRQHandler
+  385 0000003A         I2C1_ER_IRQHandler
+  386 0000003A         I2C2_EV_IRQHandler
+  387 0000003A         I2C2_ER_IRQHandler
+  388 0000003A         SPI1_IRQHandler
+  389 0000003A         SPI2_IRQHandler
+  390 0000003A         USART1_IRQHandler
+  391 0000003A         USART2_IRQHandler
+  392 0000003A         USART3_IRQHandler
+  393 0000003A         EXTI15_10_IRQHandler
+  394 0000003A         RTC_Alarm_IRQHandler
 
 
 
 ARM Macro Assembler    Page 14 
 
 
-  406 0000001A         USART6_IRQHandler
-  407 0000001A         I2C3_EV_IRQHandler
-  408 0000001A         I2C3_ER_IRQHandler
-  409 0000001A         OTG_HS_EP1_OUT_IRQHandler
-  410 0000001A         OTG_HS_EP1_IN_IRQHandler
-  411 0000001A         OTG_HS_WKUP_IRQHandler
-  412 0000001A         OTG_HS_IRQHandler
-  413 0000001A         DCMI_IRQHandler
-  414 0000001A         CRYP_IRQHandler
-  415 0000001A         HASH_RNG_IRQHandler
-  416 0000001A         FPU_IRQHandler
-  417 0000001A         UART7_IRQHandler
-  418 0000001A         UART8_IRQHandler
-  419 0000001A         SPI4_IRQHandler
-  420 0000001A         SPI5_IRQHandler
-  421 0000001A         SPI6_IRQHandler
-  422 0000001A         SAI1_IRQHandler
-  423 0000001A         LTDC_IRQHandler
-  424 0000001A         LTDC_ER_IRQHandler
-  425 0000001A         DMA2D_IRQHandler
-  426 0000001A E7FE            B                .
-  427 0000001C         
-  428 0000001C                 ENDP
-  429 0000001C         
-  430 0000001C                 ALIGN
-  431 0000001C         
-  432 0000001C         ;*******************************************************
+  395 0000003A         OTG_FS_WKUP_IRQHandler
+  396 0000003A         TIM8_BRK_TIM12_IRQHandler
+  397 0000003A         TIM8_UP_TIM13_IRQHandler
+  398 0000003A         TIM8_TRG_COM_TIM14_IRQHandler
+  399 0000003A         TIM8_CC_IRQHandler
+  400 0000003A         DMA1_Stream7_IRQHandler
+  401 0000003A         FMC_IRQHandler
+  402 0000003A         SDIO_IRQHandler
+  403 0000003A         TIM5_IRQHandler
+  404 0000003A         SPI3_IRQHandler
+  405 0000003A         UART4_IRQHandler
+  406 0000003A         UART5_IRQHandler
+  407 0000003A         TIM6_DAC_IRQHandler
+  408 0000003A         TIM7_IRQHandler
+  409 0000003A         DMA2_Stream0_IRQHandler
+  410 0000003A         DMA2_Stream1_IRQHandler
+  411 0000003A         DMA2_Stream2_IRQHandler
+  412 0000003A         DMA2_Stream3_IRQHandler
+  413 0000003A         DMA2_Stream4_IRQHandler
+  414 0000003A         ETH_IRQHandler
+  415 0000003A         ETH_WKUP_IRQHandler
+  416 0000003A         CAN2_TX_IRQHandler
+  417 0000003A         CAN2_RX0_IRQHandler
+  418 0000003A         CAN2_RX1_IRQHandler
+  419 0000003A         CAN2_SCE_IRQHandler
+  420 0000003A         OTG_FS_IRQHandler
+  421 0000003A         DMA2_Stream5_IRQHandler
+  422 0000003A         DMA2_Stream6_IRQHandler
+  423 0000003A         DMA2_Stream7_IRQHandler
+  424 0000003A         USART6_IRQHandler
+  425 0000003A         I2C3_EV_IRQHandler
+  426 0000003A         I2C3_ER_IRQHandler
+  427 0000003A         OTG_HS_EP1_OUT_IRQHandler
+  428 0000003A         OTG_HS_EP1_IN_IRQHandler
+  429 0000003A         OTG_HS_WKUP_IRQHandler
+  430 0000003A         OTG_HS_IRQHandler
+  431 0000003A         DCMI_IRQHandler
+  432 0000003A         CRYP_IRQHandler
+  433 0000003A         HASH_RNG_IRQHandler
+  434 0000003A         FPU_IRQHandler
+  435 0000003A         UART7_IRQHandler
+  436 0000003A         UART8_IRQHandler
+  437 0000003A         SPI4_IRQHandler
+  438 0000003A         SPI5_IRQHandler
+  439 0000003A         SPI6_IRQHandler
+  440 0000003A         SAI1_IRQHandler
+  441 0000003A         LTDC_IRQHandler
+  442 0000003A         LTDC_ER_IRQHandler
+  443 0000003A         DMA2D_IRQHandler
+  444 0000003A E7FE            B                .
+  445 0000003C         
+  446 0000003C                 ENDP
+  447 0000003C         
+  448 0000003C                 ALIGN
+  449 0000003C         
+  450 0000003C         ;*******************************************************
                        ************************
-  433 0000001C         ; User Stack and Heap initialization
-  434 0000001C         ;*******************************************************
+  451 0000003C         ; User Stack and Heap initialization
+  452 0000003C         ;*******************************************************
+
+
+
+ARM Macro Assembler    Page 15 
+
+
                        ************************
-  435 0000001C                 IF               :DEF:__MICROLIB
-  436 0000001C         
-  437 0000001C                 EXPORT           __initial_sp
-  438 0000001C                 EXPORT           __heap_base
-  439 0000001C                 EXPORT           __heap_limit
-  440 0000001C         
-  441 0000001C                 ELSE
-  456                          ENDIF
-  457 0000001C         
-  458 0000001C                 END
+  453 0000003C                 IF               :DEF:__MICROLIB
+  454 0000003C         
+  455 0000003C                 EXPORT           __initial_sp
+  456 0000003C                 EXPORT           __heap_base
+  457 0000003C                 EXPORT           __heap_limit
+  458 0000003C         
+  459 0000003C                 ELSE
+  474                          ENDIF
+  475 0000003C         
+  476 0000003C                 END
+              E000ED88 
+              E000EF34 
               00000000 
               00000000 
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M4.fp --apcs=int
@@ -934,7 +971,7 @@ ates\arm\startup_stm32f429_439xx.s
    Uses
       At line 69 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 437 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 455 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
 3 symbols
@@ -969,7 +1006,7 @@ Symbol: __heap_base
       At line 55 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
    Uses
-      At line 438 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 456 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 Comment: __heap_base used once
 __heap_limit 00000200
@@ -979,7 +1016,7 @@ Symbol: __heap_limit
       At line 57 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
    Uses
-      At line 439 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 457 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 Comment: __heap_limit used once
 4 symbols
@@ -1038,55 +1075,55 @@ lates\arm\startup_stm32f429_439xx.s
    Uses
       None
 Comment: .text unused
-ADC_IRQHandler 0000001A
+ADC_IRQHandler 0000003A
 
 Symbol: ADC_IRQHandler
    Definitions
-      At line 353 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 371 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 105 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 261 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 279 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-BusFault_Handler 0000000E
+BusFault_Handler 0000002E
 
 Symbol: BusFault_Handler
    Definitions
-      At line 214 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 232 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 74 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 215 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 233 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-CAN1_RX0_IRQHandler 0000001A
+CAN1_RX0_IRQHandler 0000003A
 
 Symbol: CAN1_RX0_IRQHandler
    Definitions
-      At line 355 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 373 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 107 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 263 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 281 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-CAN1_RX1_IRQHandler 0000001A
+CAN1_RX1_IRQHandler 0000003A
 
 Symbol: CAN1_RX1_IRQHandler
    Definitions
-      At line 356 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 374 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 108 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 264 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 282 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-CAN1_SCE_IRQHandler 0000001A
+CAN1_SCE_IRQHandler 0000003A
 
 
 
@@ -1096,63 +1133,63 @@ Relocatable symbols
 
 Symbol: CAN1_SCE_IRQHandler
    Definitions
-      At line 357 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 375 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 109 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 265 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 283 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-CAN1_TX_IRQHandler 0000001A
+CAN1_TX_IRQHandler 0000003A
 
 Symbol: CAN1_TX_IRQHandler
    Definitions
-      At line 354 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 372 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 106 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 262 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 280 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-CAN2_RX0_IRQHandler 0000001A
+CAN2_RX0_IRQHandler 0000003A
 
 Symbol: CAN2_RX0_IRQHandler
    Definitions
-      At line 399 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 417 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 151 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 307 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 325 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-CAN2_RX1_IRQHandler 0000001A
+CAN2_RX1_IRQHandler 0000003A
 
 Symbol: CAN2_RX1_IRQHandler
    Definitions
-      At line 400 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 418 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 152 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 308 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 326 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-CAN2_SCE_IRQHandler 0000001A
+CAN2_SCE_IRQHandler 0000003A
 
 Symbol: CAN2_SCE_IRQHandler
    Definitions
-      At line 401 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 419 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 153 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 309 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 327 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-CAN2_TX_IRQHandler 0000001A
+CAN2_TX_IRQHandler 0000003A
 
 
 
@@ -1162,60 +1199,60 @@ Relocatable symbols
 
 Symbol: CAN2_TX_IRQHandler
    Definitions
-      At line 398 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 416 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 150 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 306 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 324 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-CRYP_IRQHandler 0000001A
+CRYP_IRQHandler 0000003A
 
 Symbol: CRYP_IRQHandler
    Definitions
-      At line 414 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 432 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 166 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 322 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 340 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DCMI_IRQHandler 0000001A
+DCMI_IRQHandler 0000003A
 
 Symbol: DCMI_IRQHandler
    Definitions
-      At line 413 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 431 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 165 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 321 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 339 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DMA1_Stream0_IRQHandler 0000001A
+DMA1_Stream0_IRQHandler 0000003A
 
 Symbol: DMA1_Stream0_IRQHandler
    Definitions
-      At line 346 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 364 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 98 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 254 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 272 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DMA1_Stream1_IRQHandler 0000001A
+DMA1_Stream1_IRQHandler 0000003A
 
 Symbol: DMA1_Stream1_IRQHandler
    Definitions
-      At line 347 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 365 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 99 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 255 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 273 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
 
@@ -1224,64 +1261,64 @@ lates\arm\startup_stm32f429_439xx.s
 ARM Macro Assembler    Page 4 Alphabetic symbol ordering
 Relocatable symbols
 
-DMA1_Stream2_IRQHandler 0000001A
+DMA1_Stream2_IRQHandler 0000003A
 
 Symbol: DMA1_Stream2_IRQHandler
    Definitions
-      At line 348 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 366 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 100 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 256 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 274 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DMA1_Stream3_IRQHandler 0000001A
+DMA1_Stream3_IRQHandler 0000003A
 
 Symbol: DMA1_Stream3_IRQHandler
    Definitions
-      At line 349 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 367 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 101 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 257 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 275 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DMA1_Stream4_IRQHandler 0000001A
+DMA1_Stream4_IRQHandler 0000003A
 
 Symbol: DMA1_Stream4_IRQHandler
    Definitions
-      At line 350 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 368 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 102 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 258 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 276 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DMA1_Stream5_IRQHandler 0000001A
+DMA1_Stream5_IRQHandler 0000003A
 
 Symbol: DMA1_Stream5_IRQHandler
    Definitions
-      At line 351 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 369 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 103 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 259 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 277 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DMA1_Stream6_IRQHandler 0000001A
+DMA1_Stream6_IRQHandler 0000003A
 
 Symbol: DMA1_Stream6_IRQHandler
    Definitions
-      At line 352 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 370 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 104 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 260 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 278 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
 
@@ -1290,64 +1327,64 @@ ARM Macro Assembler    Page 5 Alphabetic symbol ordering
 Relocatable symbols
 
 
-DMA1_Stream7_IRQHandler 0000001A
+DMA1_Stream7_IRQHandler 0000003A
 
 Symbol: DMA1_Stream7_IRQHandler
    Definitions
-      At line 382 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 400 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 134 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 290 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 308 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DMA2D_IRQHandler 0000001A
+DMA2D_IRQHandler 0000003A
 
 Symbol: DMA2D_IRQHandler
    Definitions
-      At line 425 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 443 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 177 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 333 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 351 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DMA2_Stream0_IRQHandler 0000001A
+DMA2_Stream0_IRQHandler 0000003A
 
 Symbol: DMA2_Stream0_IRQHandler
    Definitions
-      At line 391 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 409 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 143 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 299 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 317 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DMA2_Stream1_IRQHandler 0000001A
+DMA2_Stream1_IRQHandler 0000003A
 
 Symbol: DMA2_Stream1_IRQHandler
    Definitions
-      At line 392 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 410 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 144 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 300 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 318 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DMA2_Stream2_IRQHandler 0000001A
+DMA2_Stream2_IRQHandler 0000003A
 
 Symbol: DMA2_Stream2_IRQHandler
    Definitions
-      At line 393 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 411 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 145 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 301 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 319 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 
 
 
@@ -1356,59 +1393,59 @@ Relocatable symbols
 
 lates\arm\startup_stm32f429_439xx.s
 
-DMA2_Stream3_IRQHandler 0000001A
+DMA2_Stream3_IRQHandler 0000003A
 
 Symbol: DMA2_Stream3_IRQHandler
    Definitions
-      At line 394 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 412 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 146 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 302 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 320 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DMA2_Stream4_IRQHandler 0000001A
+DMA2_Stream4_IRQHandler 0000003A
 
 Symbol: DMA2_Stream4_IRQHandler
    Definitions
-      At line 395 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 413 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 147 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 303 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 321 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DMA2_Stream5_IRQHandler 0000001A
+DMA2_Stream5_IRQHandler 0000003A
 
 Symbol: DMA2_Stream5_IRQHandler
    Definitions
-      At line 403 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 421 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 155 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 311 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 329 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DMA2_Stream6_IRQHandler 0000001A
+DMA2_Stream6_IRQHandler 0000003A
 
 Symbol: DMA2_Stream6_IRQHandler
    Definitions
-      At line 404 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 422 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 156 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 312 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 330 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DMA2_Stream7_IRQHandler 0000001A
+DMA2_Stream7_IRQHandler 0000003A
 
 Symbol: DMA2_Stream7_IRQHandler
    Definitions
-      At line 405 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 423 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 157 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
@@ -1419,64 +1456,64 @@ lates\arm\startup_stm32f429_439xx.s
 ARM Macro Assembler    Page 7 Alphabetic symbol ordering
 Relocatable symbols
 
-      At line 313 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 331 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-DebugMon_Handler 00000014
+DebugMon_Handler 00000034
 
 Symbol: DebugMon_Handler
    Definitions
-      At line 228 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 246 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 81 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 229 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 247 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-Default_Handler 0000001A
+Default_Handler 0000003A
 
 Symbol: Default_Handler
    Definitions
-      At line 241 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 259 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       None
 Comment: Default_Handler unused
-ETH_IRQHandler 0000001A
+ETH_IRQHandler 0000003A
 
 Symbol: ETH_IRQHandler
    Definitions
-      At line 396 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 414 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 148 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 304 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 322 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-ETH_WKUP_IRQHandler 0000001A
+ETH_WKUP_IRQHandler 0000003A
 
 Symbol: ETH_WKUP_IRQHandler
    Definitions
-      At line 397 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 415 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 149 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 305 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 323 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-EXTI0_IRQHandler 0000001A
+EXTI0_IRQHandler 0000003A
 
 Symbol: EXTI0_IRQHandler
    Definitions
-      At line 341 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 359 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 93 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 249 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 267 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
 
@@ -1485,64 +1522,64 @@ ARM Macro Assembler    Page 8 Alphabetic symbol ordering
 Relocatable symbols
 
 
-EXTI15_10_IRQHandler 0000001A
+EXTI15_10_IRQHandler 0000003A
 
 Symbol: EXTI15_10_IRQHandler
    Definitions
-      At line 375 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 393 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 127 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 283 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 301 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-EXTI1_IRQHandler 0000001A
+EXTI1_IRQHandler 0000003A
 
 Symbol: EXTI1_IRQHandler
    Definitions
-      At line 342 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 360 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 94 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 250 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 268 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-EXTI2_IRQHandler 0000001A
+EXTI2_IRQHandler 0000003A
 
 Symbol: EXTI2_IRQHandler
    Definitions
-      At line 343 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 361 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 95 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 251 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 269 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-EXTI3_IRQHandler 0000001A
+EXTI3_IRQHandler 0000003A
 
 Symbol: EXTI3_IRQHandler
    Definitions
-      At line 344 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 362 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 96 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 252 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 270 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-EXTI4_IRQHandler 0000001A
+EXTI4_IRQHandler 0000003A
 
 Symbol: EXTI4_IRQHandler
    Definitions
-      At line 345 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 363 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 97 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 253 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 271 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 
 
 
@@ -1551,59 +1588,59 @@ Relocatable symbols
 
 lates\arm\startup_stm32f429_439xx.s
 
-EXTI9_5_IRQHandler 0000001A
+EXTI9_5_IRQHandler 0000003A
 
 Symbol: EXTI9_5_IRQHandler
    Definitions
-      At line 358 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 376 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 110 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 266 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 284 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-FLASH_IRQHandler 0000001A
+FLASH_IRQHandler 0000003A
 
 Symbol: FLASH_IRQHandler
    Definitions
-      At line 339 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 357 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 91 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 247 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 265 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-FMC_IRQHandler 0000001A
+FMC_IRQHandler 0000003A
 
 Symbol: FMC_IRQHandler
    Definitions
-      At line 383 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 401 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 135 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 291 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 309 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-FPU_IRQHandler 0000001A
+FPU_IRQHandler 0000003A
 
 Symbol: FPU_IRQHandler
    Definitions
-      At line 416 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 434 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 168 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 324 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 342 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-HASH_RNG_IRQHandler 0000001A
+HASH_RNG_IRQHandler 0000003A
 
 Symbol: HASH_RNG_IRQHandler
    Definitions
-      At line 415 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 433 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 167 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
@@ -1614,62 +1651,62 @@ lates\arm\startup_stm32f429_439xx.s
 ARM Macro Assembler    Page 10 Alphabetic symbol ordering
 Relocatable symbols
 
-      At line 323 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 341 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-HardFault_Handler 0000000A
+HardFault_Handler 0000002A
 
 Symbol: HardFault_Handler
    Definitions
-      At line 204 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 222 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 72 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 205 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 223 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-I2C1_ER_IRQHandler 0000001A
+I2C1_ER_IRQHandler 0000003A
 
 Symbol: I2C1_ER_IRQHandler
    Definitions
-      At line 367 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 385 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 119 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 275 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 293 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-I2C1_EV_IRQHandler 0000001A
+I2C1_EV_IRQHandler 0000003A
 
 Symbol: I2C1_EV_IRQHandler
    Definitions
-      At line 366 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 384 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 118 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 274 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 292 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-I2C2_ER_IRQHandler 0000001A
+I2C2_ER_IRQHandler 0000003A
 
 Symbol: I2C2_ER_IRQHandler
    Definitions
-      At line 369 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 387 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 121 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 277 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 295 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-I2C2_EV_IRQHandler 0000001A
+I2C2_EV_IRQHandler 0000003A
 
 Symbol: I2C2_EV_IRQHandler
    Definitions
-      At line 368 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 386 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 120 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
@@ -1680,62 +1717,62 @@ ARM Macro Assembler    Page 11 Alphabetic symbol ordering
 Relocatable symbols
 
 lates\arm\startup_stm32f429_439xx.s
-      At line 276 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 294 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-I2C3_ER_IRQHandler 0000001A
+I2C3_ER_IRQHandler 0000003A
 
 Symbol: I2C3_ER_IRQHandler
    Definitions
-      At line 408 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 426 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 160 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 316 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 334 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-I2C3_EV_IRQHandler 0000001A
+I2C3_EV_IRQHandler 0000003A
 
 Symbol: I2C3_EV_IRQHandler
    Definitions
-      At line 407 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 425 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 159 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 315 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 333 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-LTDC_ER_IRQHandler 0000001A
+LTDC_ER_IRQHandler 0000003A
 
 Symbol: LTDC_ER_IRQHandler
    Definitions
-      At line 424 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 442 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 176 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 332 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 350 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-LTDC_IRQHandler 0000001A
+LTDC_IRQHandler 0000003A
 
 Symbol: LTDC_IRQHandler
    Definitions
-      At line 423 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 441 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 175 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 331 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 349 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-MemManage_Handler 0000000C
+MemManage_Handler 0000002C
 
 Symbol: MemManage_Handler
    Definitions
-      At line 209 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 227 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
 
@@ -1746,62 +1783,62 @@ Relocatable symbols
 
       At line 73 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 210 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 228 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-NMI_Handler 00000008
+NMI_Handler 00000028
 
 Symbol: NMI_Handler
    Definitions
-      At line 199 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 217 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 71 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 200 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 218 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-OTG_FS_IRQHandler 0000001A
+OS_CPU_PendSVHandler 00000036
+
+Symbol: OS_CPU_PendSVHandler
+   Definitions
+      At line 250 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+   Uses
+      At line 83 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
+ates\arm\startup_stm32f429_439xx.s
+      At line 251 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+
+OS_CPU_SysTickHandler 00000038
+
+Symbol: OS_CPU_SysTickHandler
+   Definitions
+      At line 254 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+   Uses
+      At line 84 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
+ates\arm\startup_stm32f429_439xx.s
+      At line 255 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+
+OTG_FS_IRQHandler 0000003A
 
 Symbol: OTG_FS_IRQHandler
    Definitions
-      At line 402 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 420 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 154 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 310 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 328 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-OTG_FS_WKUP_IRQHandler 0000001A
+OTG_FS_WKUP_IRQHandler 0000003A
 
 Symbol: OTG_FS_WKUP_IRQHandler
    Definitions
-      At line 377 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-   Uses
-      At line 129 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-      At line 285 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-
-OTG_HS_EP1_IN_IRQHandler 0000001A
-
-Symbol: OTG_HS_EP1_IN_IRQHandler
-   Definitions
-      At line 410 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-   Uses
-      At line 162 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-      At line 318 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-
-OTG_HS_EP1_OUT_IRQHandler 0000001A
-
-Symbol: OTG_HS_EP1_OUT_IRQHandler
-   Definitions
-      At line 409 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 395 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
 
@@ -1810,64 +1847,64 @@ ARM Macro Assembler    Page 13 Alphabetic symbol ordering
 Relocatable symbols
 
    Uses
-      At line 161 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 129 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 317 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 303 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-OTG_HS_IRQHandler 0000001A
+OTG_HS_EP1_IN_IRQHandler 0000003A
+
+Symbol: OTG_HS_EP1_IN_IRQHandler
+   Definitions
+      At line 428 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+   Uses
+      At line 162 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+      At line 336 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+
+OTG_HS_EP1_OUT_IRQHandler 0000003A
+
+Symbol: OTG_HS_EP1_OUT_IRQHandler
+   Definitions
+      At line 427 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+   Uses
+      At line 161 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+      At line 335 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+
+OTG_HS_IRQHandler 0000003A
 
 Symbol: OTG_HS_IRQHandler
    Definitions
-      At line 412 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 430 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 164 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 320 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 338 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-OTG_HS_WKUP_IRQHandler 0000001A
+OTG_HS_WKUP_IRQHandler 0000003A
 
 Symbol: OTG_HS_WKUP_IRQHandler
    Definitions
-      At line 411 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 429 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 163 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 319 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 337 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-PVD_IRQHandler 0000001A
+PVD_IRQHandler 0000003A
 
 Symbol: PVD_IRQHandler
    Definitions
-      At line 336 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-   Uses
-      At line 88 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
-ates\arm\startup_stm32f429_439xx.s
-      At line 244 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-
-PendSV_Handler 00000016
-
-Symbol: PendSV_Handler
-   Definitions
-      At line 232 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-   Uses
-      At line 83 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
-ates\arm\startup_stm32f429_439xx.s
-      At line 233 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-
-RCC_IRQHandler 0000001A
-
-Symbol: RCC_IRQHandler
-   Definitions
-      At line 340 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 354 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 
 
 
@@ -1876,33 +1913,45 @@ Relocatable symbols
 
 lates\arm\startup_stm32f429_439xx.s
    Uses
-      At line 92 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
+      At line 88 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 248 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 262 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-RTC_Alarm_IRQHandler 0000001A
+RCC_IRQHandler 0000003A
+
+Symbol: RCC_IRQHandler
+   Definitions
+      At line 358 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+   Uses
+      At line 92 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
+ates\arm\startup_stm32f429_439xx.s
+      At line 266 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+
+RTC_Alarm_IRQHandler 0000003A
 
 Symbol: RTC_Alarm_IRQHandler
    Definitions
-      At line 376 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 394 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 128 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 284 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 302 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-RTC_WKUP_IRQHandler 0000001A
+RTC_WKUP_IRQHandler 0000003A
 
 Symbol: RTC_WKUP_IRQHandler
    Definitions
-      At line 338 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 356 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 90 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 246 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 264 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
 Reset_Handler 00000000
@@ -1917,21 +1966,9 @@ ates\arm\startup_stm32f429_439xx.s
       At line 187 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-SAI1_IRQHandler 0000001A
+SAI1_IRQHandler 0000003A
 
 Symbol: SAI1_IRQHandler
-   Definitions
-      At line 422 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-   Uses
-      At line 174 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-      At line 330 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-
-SDIO_IRQHandler 0000001A
-
-Symbol: SDIO_IRQHandler
    Definitions
 
 
@@ -1939,65 +1976,65 @@ Symbol: SDIO_IRQHandler
 ARM Macro Assembler    Page 15 Alphabetic symbol ordering
 Relocatable symbols
 
-      At line 384 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 440 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+   Uses
+      At line 174 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+      At line 348 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+
+SDIO_IRQHandler 0000003A
+
+Symbol: SDIO_IRQHandler
+   Definitions
+      At line 402 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 136 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 292 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 310 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-SPI1_IRQHandler 0000001A
+SPI1_IRQHandler 0000003A
 
 Symbol: SPI1_IRQHandler
    Definitions
-      At line 370 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 388 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 122 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 278 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 296 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-SPI2_IRQHandler 0000001A
+SPI2_IRQHandler 0000003A
 
 Symbol: SPI2_IRQHandler
    Definitions
-      At line 371 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 389 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 123 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 279 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 297 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-SPI3_IRQHandler 0000001A
+SPI3_IRQHandler 0000003A
 
 Symbol: SPI3_IRQHandler
    Definitions
-      At line 386 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 404 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 138 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 294 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 312 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-SPI4_IRQHandler 0000001A
+SPI4_IRQHandler 0000003A
 
 Symbol: SPI4_IRQHandler
-   Definitions
-      At line 419 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-   Uses
-      At line 171 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-      At line 327 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-
-SPI5_IRQHandler 0000001A
-
-Symbol: SPI5_IRQHandler
 
 
 
@@ -2005,63 +2042,63 @@ ARM Macro Assembler    Page 16 Alphabetic symbol ordering
 Relocatable symbols
 
    Definitions
-      At line 420 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 437 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+   Uses
+      At line 171 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+      At line 345 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+lates\arm\startup_stm32f429_439xx.s
+
+SPI5_IRQHandler 0000003A
+
+Symbol: SPI5_IRQHandler
+   Definitions
+      At line 438 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 172 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 328 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 346 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-SPI6_IRQHandler 0000001A
+SPI6_IRQHandler 0000003A
 
 Symbol: SPI6_IRQHandler
    Definitions
-      At line 421 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 439 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 173 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 329 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 347 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-SVC_Handler 00000012
+SVC_Handler 00000032
 
 Symbol: SVC_Handler
    Definitions
-      At line 223 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 241 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 80 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 224 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 242 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-SysTick_Handler 00000018
-
-Symbol: SysTick_Handler
-   Definitions
-      At line 236 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-   Uses
-      At line 84 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
-ates\arm\startup_stm32f429_439xx.s
-      At line 237 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
-lates\arm\startup_stm32f429_439xx.s
-
-TAMP_STAMP_IRQHandler 0000001A
+TAMP_STAMP_IRQHandler 0000003A
 
 Symbol: TAMP_STAMP_IRQHandler
    Definitions
-      At line 337 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 355 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 89 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 245 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 263 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-TIM1_BRK_TIM9_IRQHandler 0000001A
+TIM1_BRK_TIM9_IRQHandler 0000003A
 
 
 
@@ -2071,63 +2108,63 @@ Relocatable symbols
 
 Symbol: TIM1_BRK_TIM9_IRQHandler
    Definitions
-      At line 359 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 377 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 111 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 267 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 285 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-TIM1_CC_IRQHandler 0000001A
+TIM1_CC_IRQHandler 0000003A
 
 Symbol: TIM1_CC_IRQHandler
    Definitions
-      At line 362 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 380 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 114 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 270 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 288 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-TIM1_TRG_COM_TIM11_IRQHandler 0000001A
+TIM1_TRG_COM_TIM11_IRQHandler 0000003A
 
 Symbol: TIM1_TRG_COM_TIM11_IRQHandler
    Definitions
-      At line 361 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 379 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 113 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 269 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 287 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-TIM1_UP_TIM10_IRQHandler 0000001A
+TIM1_UP_TIM10_IRQHandler 0000003A
 
 Symbol: TIM1_UP_TIM10_IRQHandler
    Definitions
-      At line 360 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 378 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 112 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 268 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 286 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-TIM2_IRQHandler 0000001A
+TIM2_IRQHandler 0000003A
 
 Symbol: TIM2_IRQHandler
    Definitions
-      At line 363 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 381 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 115 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 271 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 289 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-TIM3_IRQHandler 0000001A
+TIM3_IRQHandler 0000003A
 
 
 
@@ -2137,60 +2174,60 @@ Relocatable symbols
 
 Symbol: TIM3_IRQHandler
    Definitions
-      At line 364 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 382 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 116 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 272 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 290 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-TIM4_IRQHandler 0000001A
+TIM4_IRQHandler 0000003A
 
 Symbol: TIM4_IRQHandler
    Definitions
-      At line 365 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 383 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 117 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 273 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 291 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-TIM5_IRQHandler 0000001A
+TIM5_IRQHandler 0000003A
 
 Symbol: TIM5_IRQHandler
    Definitions
-      At line 385 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 403 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 137 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 293 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 311 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-TIM6_DAC_IRQHandler 0000001A
+TIM6_DAC_IRQHandler 0000003A
 
 Symbol: TIM6_DAC_IRQHandler
    Definitions
-      At line 389 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 407 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 141 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 297 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 315 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-TIM7_IRQHandler 0000001A
+TIM7_IRQHandler 0000003A
 
 Symbol: TIM7_IRQHandler
    Definitions
-      At line 390 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 408 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 142 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 298 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 316 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
 
@@ -2199,64 +2236,64 @@ lates\arm\startup_stm32f429_439xx.s
 ARM Macro Assembler    Page 19 Alphabetic symbol ordering
 Relocatable symbols
 
-TIM8_BRK_TIM12_IRQHandler 0000001A
+TIM8_BRK_TIM12_IRQHandler 0000003A
 
 Symbol: TIM8_BRK_TIM12_IRQHandler
    Definitions
-      At line 378 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 396 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 130 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 286 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 304 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-TIM8_CC_IRQHandler 0000001A
+TIM8_CC_IRQHandler 0000003A
 
 Symbol: TIM8_CC_IRQHandler
    Definitions
-      At line 381 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 399 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 133 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 289 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 307 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-TIM8_TRG_COM_TIM14_IRQHandler 0000001A
+TIM8_TRG_COM_TIM14_IRQHandler 0000003A
 
 Symbol: TIM8_TRG_COM_TIM14_IRQHandler
    Definitions
-      At line 380 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 398 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 132 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 288 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 306 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-TIM8_UP_TIM13_IRQHandler 0000001A
+TIM8_UP_TIM13_IRQHandler 0000003A
 
 Symbol: TIM8_UP_TIM13_IRQHandler
    Definitions
-      At line 379 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 397 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 131 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 287 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 305 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-UART4_IRQHandler 0000001A
+UART4_IRQHandler 0000003A
 
 Symbol: UART4_IRQHandler
    Definitions
-      At line 387 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 405 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 139 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 295 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 313 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
 
@@ -2265,64 +2302,64 @@ ARM Macro Assembler    Page 20 Alphabetic symbol ordering
 Relocatable symbols
 
 
-UART5_IRQHandler 0000001A
+UART5_IRQHandler 0000003A
 
 Symbol: UART5_IRQHandler
    Definitions
-      At line 388 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 406 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 140 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 296 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 314 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-UART7_IRQHandler 0000001A
+UART7_IRQHandler 0000003A
 
 Symbol: UART7_IRQHandler
    Definitions
-      At line 417 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 435 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 169 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 325 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 343 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-UART8_IRQHandler 0000001A
+UART8_IRQHandler 0000003A
 
 Symbol: UART8_IRQHandler
    Definitions
-      At line 418 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 436 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 170 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 326 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 344 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-USART1_IRQHandler 0000001A
+USART1_IRQHandler 0000003A
 
 Symbol: USART1_IRQHandler
    Definitions
-      At line 372 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 390 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 124 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 280 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 298 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-USART2_IRQHandler 0000001A
+USART2_IRQHandler 0000003A
 
 Symbol: USART2_IRQHandler
    Definitions
-      At line 373 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 391 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 125 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 281 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 299 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 
 
 
@@ -2331,52 +2368,52 @@ Relocatable symbols
 
 lates\arm\startup_stm32f429_439xx.s
 
-USART3_IRQHandler 0000001A
+USART3_IRQHandler 0000003A
 
 Symbol: USART3_IRQHandler
    Definitions
-      At line 374 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 392 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 126 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 282 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 300 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-USART6_IRQHandler 0000001A
+USART6_IRQHandler 0000003A
 
 Symbol: USART6_IRQHandler
    Definitions
-      At line 406 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 424 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 158 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
-      At line 314 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 332 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-UsageFault_Handler 00000010
+UsageFault_Handler 00000030
 
 Symbol: UsageFault_Handler
    Definitions
-      At line 219 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 237 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 75 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 220 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 238 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
-WWDG_IRQHandler 0000001A
+WWDG_IRQHandler 0000003A
 
 Symbol: WWDG_IRQHandler
    Definitions
-      At line 335 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 353 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
       At line 87 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Templ
 ates\arm\startup_stm32f429_439xx.s
-      At line 243 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 261 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 
 103 symbols
@@ -2430,7 +2467,7 @@ Symbol: SystemInit
       At line 188 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
-      At line 191 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 209 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 Comment: SystemInit used once
 __main 00000000
@@ -2440,7 +2477,7 @@ Symbol: __main
       At line 189 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
    Uses
-      At line 193 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
+      At line 211 in file ..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Source\Temp
 lates\arm\startup_stm32f429_439xx.s
 Comment: __main used once
 2 symbols

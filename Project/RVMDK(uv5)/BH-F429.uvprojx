@@ -7,10 +7,9 @@
 
   <Targets>
     <Target>
-      <TargetName>STM32F429</TargetName>
+      <TargetName>时钟节拍</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pArmCC>5050106::V5.05 update 1 (build 106)::ARMCC</pArmCC>
       <TargetOption>
         <TargetCommonOption>
           <Device>STM32F429IGTx</Device>
@@ -366,7 +365,7 @@
               <MiscControls></MiscControls>
               <Define>STM32F429_439xx,USE_STDPERIPH_DRIVER,</Define>
               <Undefine></Undefine>
-              <IncludePath>..\..\Libraries\CMSIS\Include;..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Include;..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc;..\..\User;..\..\peripheral\led;..\..\peripheral\systick;..\..\peripheral\uart;..\..\peripheral\dram_malloc;..\..\User\APP;..\..\User\BSP;..\..\User\uC-CPU;..\..\User\uC-CPU\ARM-Cortex-M4\RealView;..\..\User\uC-LIB;..\..\User\uCOS-III\Source;..\..\User\uCOS-III\Ports\ARM-Cortex-M4\Generic\RealView</IncludePath>
+              <IncludePath>..\..\Libraries\CMSIS\Include;..\..\Libraries\CMSIS\Device\ST\STM32F4xx\Include;..\..\Libraries\STM32F4xx_StdPeriph_Driver\inc;..\..\User;..\..\User\APP;..\..\User\BSP;..\..\User\BSP\usart;..\..\User\uC-CPU;..\..\User\uC-CPU\ARM-Cortex-M4\RealView;..\..\User\uC-LIB;..\..\User\uCOS-III\Source;..\..\User\uCOS-III\Ports\ARM-Cortex-M4\Generic\RealView;..\..\User\BSP\led;..\..\User\BSP\dram_malloc</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -695,36 +694,6 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>peripheral</GroupName>
-          <Files>
-            <File>
-              <FileName>bsp_led.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\peripheral\led\bsp_led.c</FilePath>
-            </File>
-            <File>
-              <FileName>bsp_SysTick.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\peripheral\systick\bsp_SysTick.c</FilePath>
-            </File>
-            <File>
-              <FileName>bsp_debug_usart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\peripheral\uart\bsp_debug_usart.c</FilePath>
-            </File>
-            <File>
-              <FileName>bsp_sdram.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\peripheral\dram_malloc\bsp_sdram.c</FilePath>
-            </File>
-            <File>
-              <FileName>malloc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\peripheral\dram_malloc\malloc.c</FilePath>
-            </File>
-          </Files>
-        </Group>
-        <Group>
           <GroupName>APP</GroupName>
           <Files>
             <File>
@@ -787,10 +756,30 @@
               <FileType>5</FileType>
               <FilePath>..\..\User\BSP\bsp.h</FilePath>
             </File>
+            <File>
+              <FileName>bsp_usart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\BSP\usart\bsp_usart.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_sdram.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\BSP\dram_malloc\bsp_sdram.c</FilePath>
+            </File>
+            <File>
+              <FileName>malloc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\BSP\dram_malloc\malloc.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_led.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\BSP\led\bsp_led.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
-          <GroupName>uC_CPU</GroupName>
+          <GroupName>uC/CPU</GroupName>
           <Files>
             <File>
               <FileName>cpu_core.c</FileName>
@@ -825,7 +814,7 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>uC_LIB</GroupName>
+          <GroupName>uC/LIB</GroupName>
           <Files>
             <File>
               <FileName>lib_ascii.c</FileName>
@@ -880,7 +869,7 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>uC_OS Source</GroupName>
+          <GroupName>uC/OS-III Source</GroupName>
           <Files>
             <File>
               <FileName>os.h</FileName>
@@ -985,7 +974,7 @@
           </Files>
         </Group>
         <Group>
-          <GroupName>uC_OS Port</GroupName>
+          <GroupName>uC/OS-III Port</GroupName>
           <Files>
             <File>
               <FileName>os_cpu.h</FileName>

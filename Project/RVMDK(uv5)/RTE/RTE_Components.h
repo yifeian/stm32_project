@@ -4,7 +4,7 @@
  *      *** Do not modify ! ***
  *
  * Project: 'WF-STM32F429' 
- * Target:  'STM32F429' 
+ * Target:  'й╠жс╫зед' 
  */
 
 #ifndef RTE_COMPONENTS_H

@@ -56,6 +56,8 @@
 
 #define  APP_TASK_START_PRIO                        2u
 
+#define  APP_TASK_TEST_PRIO                         3u
+
 /*
 *********************************************************************************************************
 *                                            TASK STACK SIZES
@@ -63,6 +65,8 @@
 */
 
 #define  APP_TASK_START_STK_SIZE                    128u
+
+#define  APP_TASK_TEST_STK_SIZE                     512u
 
 
 /*
