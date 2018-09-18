@@ -42,6 +42,10 @@
 *                                            LOCAL DEFINES
 *********************************************************************************************************
 */
+OS_MUTEX p_mutex;
+OS_Q p_q;
+
+uint8_t ucValue [ 2 ] = { 0x00, 0x00 };
 
 /*
 *********************************************************************************************************
@@ -51,8 +55,9 @@
 
 static  OS_TCB   AppTaskStartTCB;
 
-static  OS_TCB   AppTaskTestTCB;
+static  OS_TCB   AppMutexTestTCB;
 
+static  OS_TCB   AppMutexTestTCB1;
 
 /*
 *********************************************************************************************************
@@ -62,8 +67,10 @@ static  OS_TCB   AppTaskTestTCB;
 
 static  CPU_STK  AppTaskStartStk[APP_TASK_START_STK_SIZE];
 
-static  CPU_STK  AppTaskTestStk [ APP_TASK_TEST_STK_SIZE ];
+static  CPU_STK  AppMutexTestStk [ APP_MUTEX_TEST_STK_SIZE ];
 
+
+static  CPU_STK  AppMutexTestStk1 [ APP_MUTEX_TEST_STK_SIZE1 ];
 
 /*
 *********************************************************************************************************
@@ -73,8 +80,11 @@ static  CPU_STK  AppTaskTestStk [ APP_TASK_TEST_STK_SIZE ];
 
 static  void  AppTaskStart  (void *p_arg);
 
-static  void  AppTaskTest   ( void * p_arg );
+static  void  AppMutexTest   ( void * p_arg );
+static  void  AppMutexTest1 ( void * p_arg );
 
+
+static void my_callback(void *p_tmr, void *p_arg);
 
 /*
 *********************************************************************************************************
@@ -133,11 +143,16 @@ int  main (void)
 *********************************************************************************************************
 */
 
+
+
+
+
 static  void  AppTaskStart (void *p_arg)
 {
     CPU_INT32U  cpu_clk_freq;
     CPU_INT32U  cnts;
     OS_ERR      err;
+	OS_TMR      my_tmr;
 
 
    (void)p_arg;
@@ -160,22 +175,45 @@ static  void  AppTaskStart (void *p_arg)
 #endif
     
 		/* 创建测试任务 */
-    OSTaskCreate((OS_TCB     *)&AppTaskTestTCB,                             //任务控制块地址
-                 (CPU_CHAR   *)"App Task Test",                             //任务名称
-                 (OS_TASK_PTR ) AppTaskTest,                                //任务函数
+    OSTaskCreate((OS_TCB     *)&AppMutexTestTCB,                             //任务控制块地址
+                 (CPU_CHAR   *)"App Mutex Test",                             //任务名称
+                 (OS_TASK_PTR ) AppMutexTest,                                //任务函数
                  (void       *) 0,                                          //传递给任务函数（形参p_arg）的实参
-                 (OS_PRIO     ) APP_TASK_TEST_PRIO,                         //任务的优先级
-                 (CPU_STK    *)&AppTaskTestStk[0],                          //任务堆栈的基地址
-                 (CPU_STK_SIZE) APP_TASK_TEST_STK_SIZE / 10,                //任务堆栈空间剩下1/10时限制其增长
-                 (CPU_STK_SIZE) APP_TASK_TEST_STK_SIZE,                     //任务堆栈空间（单位：sizeof(CPU_STK)）
+                 (OS_PRIO     ) APP_MUTEX_TEST_PRIO,                         //任务的优先级
+                 (CPU_STK    *)&AppMutexTestStk[0],                          //任务堆栈的基地址
+                 (CPU_STK_SIZE) APP_MUTEX_TEST_STK_SIZE / 10,                //任务堆栈空间剩下1/10时限制其增长
+                 (CPU_STK_SIZE) APP_MUTEX_TEST_STK_SIZE,                     //任务堆栈空间（单位：sizeof(CPU_STK)）
                  (OS_MSG_QTY  ) 5u,                                         //任务可接收的最大消息数
                  (OS_TICK     ) 0u,                                         //任务的时间片节拍数（0表默认值OSCfg_TickRate_Hz/10）
                  (void       *) 0,                                          //任务扩展（0表不扩展）
                  (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR), //任务选项
                  (OS_ERR     *)&err);                                       //返回错误类型
-		
 
-		OSTaskDel ( & AppTaskStartTCB, & err );                     //删除起始任务本身，该任务不再运行
+			/* 创建测试任务 */
+    OSTaskCreate((OS_TCB     *)&AppMutexTestTCB1,                             //任务控制块地址
+                 (CPU_CHAR   *)"App Mutex Test1",                             //任务名称
+                 (OS_TASK_PTR ) AppMutexTest1,                                //任务函数
+                 (void       *) 0,                                          //传递给任务函数（形参p_arg）的实参
+                 (OS_PRIO     ) APP_MUTEX_TEST_PRIO1,                         //任务的优先级
+                 (CPU_STK    *)&AppMutexTestStk1[0],                          //任务堆栈的基地址
+                 (CPU_STK_SIZE) APP_MUTEX_TEST_STK_SIZE1 / 10,                //任务堆栈空间剩下1/10时限制其增长
+                 (CPU_STK_SIZE) APP_MUTEX_TEST_STK_SIZE1,                     //任务堆栈空间（单位：sizeof(CPU_STK)）
+                 (OS_MSG_QTY  ) 5u,                                         //任务可接收的最大消息数
+                 (OS_TICK     ) 0u,                                         //任务的时间片节拍数（0表默认值OSCfg_TickRate_Hz/10）
+                 (void       *) 0,                                          //任务扩展（0表不扩展）
+                 (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR), //任务选项
+                 (OS_ERR     *)&err);                                       //返回错误类型
+	//互斥信号量
+
+	OSMutexCreate(&p_mutex,(char *)"test mutex",&err);
+	OSQCreate(&p_q, (CPU_CHAR *)"queue test", 20, &err);
+	//软件定时器
+	OSTmrCreate(&my_tmr,"soft tmr",10,10,OS_OPT_TMR_PERIODIC,my_callback,(void *)"time over",&err);
+	OSTmrStart(&my_tmr,&err);
+
+	
+
+	OSTaskDel ( &AppTaskStartTCB, &err );                     //删除起始任务本身，该任务不再运行
 		
 		
 }
@@ -187,35 +225,52 @@ static  void  AppTaskStart (void *p_arg)
 *********************************************************************************************************
 */
 
-static  void  AppTaskTest ( void * p_arg )
+static  void  AppMutexTest ( void * p_arg )
+{
+
+	OS_ERR   err;
+	char *pMsg = NULL;
+	OS_MSG_SIZE msg_size;
+	(void)p_arg;
+	
+	while (DEF_TRUE) 
+	{                                    //任务体，通常都写成一个死循环    
+		OSMutexPend(&p_mutex, 0, OS_OPT_PEND_BLOCKING, 0, &err);
+		ucValue[0] ++;
+		OSTimeDly(1000, OS_OPT_TIME_DLY, &err);
+		ucValue[1] ++;
+		pMsg = OSQPend(&p_q, 0, OS_OPT_PEND_BLOCKING, &msg_size, 0, &err);
+		if(err == OS_ERR_NONE && pMsg != NULL)
+		{
+			LOG("消息长度: %d字节, 内容: %s",msg_size,pMsg);
+		}
+		OSMutexPost(&p_mutex, OS_OPT_POST_NONE, &err);
+	}
+		
+}
+
+
+static  void  AppMutexTest1 ( void * p_arg )
 {
 	OS_ERR           err;
-	CPU_INT32U       cpu_clk_freq;
-	CPU_TS           ts_start;
-	CPU_TS           ts_end;
-	CPU_SR_ALLOC();                                       //使用到临界段（在关/开中断时）时必需该宏，该宏声明和定义一个局部变
-                                                        //量，用于保存关中断前的 CPU 状态寄存器 SR（临界段关中断只需保存SR）
-                                                        //，开中断时将该值还原。
- (void)p_arg;
 
-
-  cpu_clk_freq = BSP_CPU_ClkFreq();                     //获取CPU时钟，时间戳是以该时钟计数
 	
+ 	(void)p_arg;
 	while (DEF_TRUE) {                                    //任务体，通常都写成一个死循环    
-		ts_start = OS_TS_GET();                             //获取延时前时间戳
-		
-		OSTimeDly ( 1000, OS_OPT_TIME_DLY, & err );         //延时1000个时钟节拍（1s）
-		
-		ts_end = OS_TS_GET() - ts_start;                    //获取延时后的时间戳（以CPU时钟进行计数的一个计数值），并计算延时时间
-		
-		OS_CRITICAL_ENTER();                                //进入临界段，不希望下面串口打印遭到中断
-		
-		printf ( "\r\n延时1000个时钟节拍（1s），通过时间戳测得延时 %07d us，即 %04d ms。", 
-		          ts_end / ( cpu_clk_freq / 1000000 ),     //将延时时间折算成 us 
-		          ts_end / ( cpu_clk_freq / 1000 ) );      //将延时时间折算成 ms 
-		
-		OS_CRITICAL_EXIT();                                //进入临界段，不希望下面串口打印遭到中断
-		
+	
+		OSMutexPend(&p_mutex, 0, OS_OPT_PEND_BLOCKING, 0, &err);
+		if(err == OS_ERR_NONE)
+		if(ucValue[0] == ucValue[1])
+		{  
+			LOG("successful, ucValue0 is %d,ucValue1 is %d",ucValue[0],ucValue[1]);
+			OSQPost(&p_q,(void *)"test for queue !",sizeof("test for queue !"),OS_OPT_POST_ALL|OS_OPT_POST_FIFO|OS_OPT_POST_NO_SCHED,&err);
+		}
+		else
+		{
+			LOG("failed, ucValue0 is %d,ucValue1 is %d",ucValue[0],ucValue[1]);
+		}
+		OSTimeDly(1000,OS_OPT_TIME_DLY, &err);
+		OSMutexPost(&p_mutex, OS_OPT_POST_NONE, &err);
 	}
 		
 		
@@ -223,6 +278,11 @@ static  void  AppTaskTest ( void * p_arg )
 
 
 
+static void my_callback(void *p_tmr, void *p_arg)
+{
+	
+	LED4_TOGGLE;
+}
 
 
 

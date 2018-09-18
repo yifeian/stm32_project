@@ -80,6 +80,9 @@
 #include "bsp_sdram.h"   
 #include "malloc.h"	
 
+#define LOG(fmt, ...) printf("\r\n%s %s %d:"fmt, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
+
+
 /*
 *********************************************************************************************************
 *                                               CONSTANTS

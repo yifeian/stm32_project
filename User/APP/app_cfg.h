@@ -56,7 +56,9 @@
 
 #define  APP_TASK_START_PRIO                        2u
 
-#define  APP_TASK_TEST_PRIO                         3u
+#define  APP_MUTEX_TEST_PRIO                        3u
+
+#define  APP_MUTEX_TEST_PRIO1                       2u
 
 /*
 *********************************************************************************************************
@@ -66,8 +68,10 @@
 
 #define  APP_TASK_START_STK_SIZE                    128u
 
-#define  APP_TASK_TEST_STK_SIZE                     512u
+#define  APP_MUTEX_TEST_STK_SIZE                     128u
 
+
+#define  APP_MUTEX_TEST_STK_SIZE1                     128u
 
 /*
 *********************************************************************************************************
