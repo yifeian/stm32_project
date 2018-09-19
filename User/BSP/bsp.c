@@ -248,6 +248,8 @@ void  BSP_Init (void)
 	USARTx_Config ();    //≥ı ºªØ USART1
 	LED_GPIO_Config();
 	SDRAM_Init();
+	SPI_NETWORK_Init();
+	SPI_FLASH_Init();
 }
 
 

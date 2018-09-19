@@ -79,6 +79,10 @@
 #include "bsp_led.h" 
 #include "bsp_sdram.h"   
 #include "malloc.h"	
+#include "bsp_spi_flash.h"
+#include "bsp_enc28j60.h"
+
+
 
 #define LOG(fmt, ...) printf("\r\n%s %s %d:"fmt, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 

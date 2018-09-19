@@ -7,7 +7,7 @@
 
   <Targets>
     <Target>
-      <TargetName>时钟节拍</TargetName>
+      <TargetName>project</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
       <TargetOption>

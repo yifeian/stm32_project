@@ -158,7 +158,7 @@ static  void  AppTaskStart (void *p_arg)
    (void)p_arg;
 
     CPU_Init();                                                 //初始化 CPU 组件（时间戳、关中断时间测量和主机名）
-    BSP_Init();                                                 //板级初始化
+                                                   //板级初始化
 
     cpu_clk_freq = BSP_CPU_ClkFreq();                           //获取 CPU 内核时钟频率（SysTick 工作时钟）
     cnts = cpu_clk_freq / (CPU_INT32U)OSCfg_TickRate_Hz;        //根据用户设定的时钟节拍频率计算 SysTick 定时器的计数值
@@ -173,7 +173,7 @@ static  void  AppTaskStart (void *p_arg)
 #ifdef CPU_CFG_INT_DIS_MEAS_EN
     CPU_IntDisMeasMaxCurReset();                                //复位（清零）当前最大关中断时间
 #endif
-    
+    BSP_Init();  
 		/* 创建测试任务 */
     OSTaskCreate((OS_TCB     *)&AppMutexTestTCB,                             //任务控制块地址
                  (CPU_CHAR   *)"App Mutex Test",                             //任务名称

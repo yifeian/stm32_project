@@ -102,7 +102,10 @@ uint32_t my_mem_malloc(uint8_t memx,uint32_t size)
 	
 	if(size==0)
 		return 0XFFFFFFFF;//不需要分配
-	
+	if(size <= memblksize[memx])
+	{
+		size = memblksize[memx];
+	}
 	nmemb=size/memblksize[memx];  	//获取需要分配的连续内存块数
 	
 	if(size%memblksize[memx])nmemb++; 
