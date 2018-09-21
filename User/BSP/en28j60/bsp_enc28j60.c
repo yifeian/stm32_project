@@ -93,7 +93,7 @@ uint8_t SPI_NETWORK_Init(void)
 
   GPIO_InitTypeDef GPIO_InitStructure;
   EXTI_InitTypeDef EXTI_InitStructure;
-  SPI_InitTypeDef  SPI_InitStructure;
+
   /* 使能 NETWORK_SPI 及GPIO 时钟 */
   /*!< SPI_NETWORK_SPI_CS_GPIO, SPI_NETWORK_SPI_MOSI_GPIO, 
        SPI_NETWORK_SPI_MISO_GPIO,SPI_NETWORK_SPI_SCK_GPIO 时钟使能 */
@@ -252,7 +252,42 @@ uint8_t SPI_NETWORK_Init(void)
 	//编程该寄存器。
 	ENC28J60_Write(MAIPGL,0x12);
 	ENC28J60_Write(MAIPGH,0x0C);
-  return 0;
+	//设置MAC地址
+	ENC28J60_Write(MAADR5,enc28j60_dev.macaddr[0]);
+	ENC28J60_Write(MAADR4,enc28j60_dev.macaddr[1]);
+	ENC28J60_Write(MAADR3,enc28j60_dev.macaddr[2]);
+	ENC28J60_Write(MAADR2,enc28j60_dev.macaddr[3]);
+	ENC28J60_Write(MAADR1,enc28j60_dev.macaddr[4]);
+	ENC28J60_Write(MAADR0,enc28j60_dev.macaddr[5]);
+	//配置PHY为全双工  LEDB为拉电流
+	ENC28J60_PHY_Write(PHCON1,PHCON1_PDPXMD);	
+	//HDLDIS：PHY 半双工环回禁止位
+	//当PHCON1.PDPXMD = 1 或PHCON1.PLOOPBK = 1 时：
+	//此位可被忽略。
+	//当PHCON1.PDPXMD = 0 且PHCON1.PLOOPBK = 0 时：
+	//1 = 要发送的数据仅通过双绞线接口发出
+	//0 = 要发送的数据会环回到MAC 并通过双绞线接口发出
+	ENC28J60_PHY_Write(PHCON2,PHCON2_HDLDIS);
+	//ECON1 寄存器
+	//寄存器3-1 所示为ECON1 寄存器，它用于控制
+	//ENC28J60 的主要功能。 ECON1 中包含接收使能、发
+	//送请求、DMA 控制和存储区选择位。	   
+	ENC28J60_Set_Bank(ECON1);
+	//EIE： 以太网中断允许寄存器
+	//bit 7 INTIE： 全局INT 中断允许位
+	//1 = 允许中断事件驱动INT 引脚
+	//0 = 禁止所有INT 引脚的活动（引脚始终被驱动为高电平）
+	//bit 6 PKTIE： 接收数据包待处理中断允许位
+	//1 = 允许接收数据包待处理中断
+	//0 = 禁止接收数据包待处理中断
+	ENC28J60_Write_Op(ENC28J60_BIT_FIELD_SET,EIE,EIE_INTIE|EIE_PKTIE|EIE_TXIE|EIE_TXERIE|EIE_RXERIE);
+	// enable packet reception
+	//bit 2 RXEN：接收使能位
+	//1 = 通过当前过滤器的数据包将被写入接收缓冲器
+	//0 = 忽略所有接收的数据包
+	ENC28J60_Write_Op(ENC28J60_BIT_FIELD_SET,ECON1,ECON1_RXEN);
+	printf("ENC28J60 Duplex:%s\r\n",ENC28J60_Get_Duplex()?"Full Duplex":"Half Duplex");	//获取双工方式
+	return 0;
 }
 
  //读取ENC28J60控制寄存器(带操作码)

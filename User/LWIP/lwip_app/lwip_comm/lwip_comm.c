@@ -101,8 +101,8 @@ void lwip_comm_default_ip_set(__lwip_dev *lwipx)
 	//默认远端IP为:192.168.1.100
 	lwipx->remoteip[0]=192;	
 	lwipx->remoteip[1]=168;
-	lwipx->remoteip[2]=1;
-	lwipx->remoteip[3]=100;
+	lwipx->remoteip[2]=0;
+	lwipx->remoteip[3]=1;
 	//MAC地址设置(高三字节固定为:2.0.0,低三字节用STM32唯一ID)
 	lwipx->mac[0]=enc28j60_dev.macaddr[0];
 	lwipx->mac[1]=enc28j60_dev.macaddr[1];
@@ -113,7 +113,7 @@ void lwip_comm_default_ip_set(__lwip_dev *lwipx)
 	//默认本地IP为:192.168.1.30
 	lwipx->ip[0]=192;	
 	lwipx->ip[1]=168;
-	lwipx->ip[2]=1;
+	lwipx->ip[2]=0;
 	lwipx->ip[3]=30;
 	//默认子网掩码:255.255.255.0
 	lwipx->netmask[0]=255;	
@@ -123,7 +123,7 @@ void lwip_comm_default_ip_set(__lwip_dev *lwipx)
 	//默认网关:192.168.1.1
 	lwipx->gateway[0]=192;	
 	lwipx->gateway[1]=168;
-	lwipx->gateway[2]=1;
+	lwipx->gateway[2]=0;
 	lwipx->gateway[3]=1;	
 	lwipx->dhcpstatus=0;//没有DHCP	
 } 
@@ -210,7 +210,7 @@ void lwip_dhcp_task(void *pdata)
 	printf("正在查找DHCP服务器,请稍等...........\r\n");   
 	while(1)
 	{ 
-		printf("正在获取地址...\r\n");
+		//printf("正在获取地址...\r\n");
 		ip=lwip_netif.ip_addr.addr; 	//读取新IP地址
 		netmask=lwip_netif.netmask.addr;//读取子网掩码
 		gw=lwip_netif.gw.addr;			//读取默认网关 
