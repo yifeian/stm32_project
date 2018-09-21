@@ -10,7 +10,6 @@
   */
 
 dev_strucrt enc28j60_dev;
-
 void spi1_init(void)
 {
   SPI_InitTypeDef  SPI_InitStructure;
@@ -19,32 +18,31 @@ void spi1_init(void)
   /* 使能 FLASH_SPI 及GPIO 时钟 */
   /*!< SPI_FLASH_SPI_CS_GPIO, SPI_FLASH_SPI_MOSI_GPIO, 
 	   SPI_FLASH_SPI_MISO_GPIO,SPI_FLASH_SPI_SCK_GPIO 时钟使能 */
-  RCC_AHB1PeriphClockCmd (RCC_AHB1Periph_GPIOA, ENABLE);
+  RCC_AHB1PeriphClockCmd (RCC_AHB1Periph_GPIOB, ENABLE);
 
   /*!< SPI_FLASH_SPI 时钟使能 */
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
  
   //设置引脚复用
-  GPIO_PinAFConfig(GPIOA,GPIO_PinSource5,GPIO_AF_SPI1); 
-  GPIO_PinAFConfig(GPIOA,GPIO_PinSource6,GPIO_AF_SPI1); 
-  GPIO_PinAFConfig(GPIOA,GPIO_PinSource7,GPIO_AF_SPI1); 
+  GPIO_PinAFConfig(GPIOB,GPIO_PinSource3,GPIO_AF_SPI1); 
+  GPIO_PinAFConfig(GPIOB,GPIO_PinSource4,GPIO_AF_SPI1); 
+  GPIO_PinAFConfig(GPIOB,GPIO_PinSource5,GPIO_AF_SPI1); 
   
   /*!< 配置 SPI_FLASH_SPI 引脚: SCK */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
   GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;	
   
-  GPIO_Init(GPIOA, &GPIO_InitStructure);
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
   
 	/*!< 配置 SPI_FLASH_SPI 引脚: MISO */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6;
-  GPIO_Init(GPIOA, &GPIO_InitStructure);
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);
   
 	/*!< 配置 SPI_FLASH_SPI 引脚: MOSI */
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_7;
-  GPIO_Init(GPIOA, &GPIO_InitStructure);  
+  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
+  GPIO_Init(GPIOB, &GPIO_InitStructure);  
 
 
   /* FLASH_SPI 模式配置 */
@@ -62,6 +60,7 @@ void spi1_init(void)
 
   /* 使能 FLASH_SPI  */
   SPI_Cmd(SPI1, ENABLE);
+  //SPI_NETWORK_SendByte(0xff);
 
 }
 
@@ -94,6 +93,7 @@ uint8_t SPI_NETWORK_Init(void)
 
   GPIO_InitTypeDef GPIO_InitStructure;
   EXTI_InitTypeDef EXTI_InitStructure;
+  SPI_InitTypeDef  SPI_InitStructure;
   /* 使能 NETWORK_SPI 及GPIO 时钟 */
   /*!< SPI_NETWORK_SPI_CS_GPIO, SPI_NETWORK_SPI_MOSI_GPIO, 
        SPI_NETWORK_SPI_MISO_GPIO,SPI_NETWORK_SPI_SCK_GPIO 时钟使能 */
@@ -103,6 +103,7 @@ uint8_t SPI_NETWORK_Init(void)
   
 	/*!< 配置 SPI_NETWORK_SPI 引脚: RST */
   GPIO_InitStructure.GPIO_Pin = NETWORK_RST_PIN|NETWORK_CS_PIN;
+  GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
   GPIO_Init(NETWORK_ENC28J60_RST, &GPIO_InitStructure);
 
@@ -120,14 +121,11 @@ uint8_t SPI_NETWORK_Init(void)
   EXTI_InitStructure.EXTI_LineCmd = ENABLE;
   EXTI_Init(&EXTI_InitStructure);
 
-
-  GPIO_SetBits(GPIOA,NETWORK_CS_PIN|NETWORK_RST_PIN);
-
   /* NETWORK_SPI 模式配置 */
   // NETWORK芯片 支持SPI模式0及模式3，据此设置CPOL CPHA
-  
+  //GPIO_SetBits(GPIOA,NETWORK_RST_PIN|NETWORK_CS_PIN|NETWORK_INT_PIN);	//PG6/7/8上拉
   spi1_init();
-  
+   
   addr = *(vu32*)(0x1FFF7A14);
   enc28j60_dev.macaddr[0]=2;
   enc28j60_dev.macaddr[1]=0;
@@ -141,6 +139,7 @@ uint8_t SPI_NETWORK_Init(void)
   ENC28J60_RST(1);
   OSTimeDly(10,OS_OPT_TIME_DLY, &err);
   ENC28J60_Write_Op(ENC28J60_SOFT_RESET,0,ENC28J60_SOFT_RESET);	//软件复位
+
 	while(!(ENC28J60_Read(ESTAT)&ESTAT_CLKRDY)&&retry<250)	//等待时钟稳定
 	{
 		retry++;
@@ -148,9 +147,15 @@ uint8_t SPI_NETWORK_Init(void)
 	}	
 	if(retry>=250)
 		return 1; //ENC28J60初始化失败
-	version=ENC28J60_Get_EREVID();			//获取ENC28J60的版本号
-	printf("ENC28J60 Version:%d\r\n",version);	
 
+	version=ENC28J60_Get_EREVID();			//获取ENC28J60的版本号
+	while(version != 0x06)
+	{
+		version=ENC28J60_Get_EREVID();	
+		OSTimeDly(200,OS_OPT_TIME_DLY, &err);
+		printf("ENC28J60 Version:%d\r\n",version);
+	}
+	printf("ENC28J60 Version:%d\r\n",version);
 	enc28j60_dev.NextPacketPtr=RXSTART_INIT;
 	//接收缓冲器由一个硬件管理的循环FIFO 缓冲器构成。
 	//寄存器对ERXSTH:ERXSTL 和ERXNDH:ERXNDL 作
@@ -262,7 +267,11 @@ uint8_t SPI_NETWORK_Init(void)
 	 SPI_NETWORK_SendByte(dat);
 	 dat=SPI_NETWORK_SendByte(0XFF);
 	 //如果是读取MAC/MII寄存器,则第二次读到的数据才是正确的,见手册29页
-	 if(addr&0x80)dat=SPI_NETWORK_SendByte(0XFF);  
+	 if(addr&0x80)
+	 {
+	 	LOG("here ");
+		dat=SPI_NETWORK_SendByte(0XFF);  
+	 }
 	 ENC28J60_CS(1);
 	 return dat; 
  }
@@ -320,6 +329,7 @@ uint8_t SPI_NETWORK_Init(void)
  {
 	 if((bank&BANK_MASK)!=enc28j60_dev.enc28j60bank) //和当前bank不一致的时候才设置
 	 {
+	 	 LOG("here ");
 		 ENC28J60_Write_Op(ENC28J60_BIT_FIELD_CLR,ECON1,(ECON1_BSEL1|ECON1_BSEL0));
 		 ENC28J60_Write_Op(ENC28J60_BIT_FIELD_SET,ECON1,(bank&BANK_MASK)>>5);
 		 enc28j60_dev.enc28j60bank=(bank&BANK_MASK);
@@ -472,7 +482,7 @@ uint8_t SPI_NETWORK_Init(void)
 	 if(status&EIR_PKTIF)		 //接收到数据,处理数据
 	 {
 		 ENC28J60_Write_Op(ENC28J60_BIT_FIELD_CLR,EIR,EIR_PKTIF);	 //清除ENC28J60的接收中断标志位
-		 //lwip_pkt_handle();
+		 lwip_pkt_handle();
 	 }
 	 if(status&EIR_TXIF)		 //以太网发送中断
 	 {
@@ -508,7 +518,7 @@ uint8_t SPI_NETWORK_Init(void)
 	 while(EXTI_GetITStatus(EXTI_Line12) != RESET)
 	 {
 	 	 LOG("THIS IS A TEST FOR EXTI_LINE12");
-		 //ENC28J60_ISRHandler();
+		 ENC28J60_ISRHandler();
 		 EXTI_ClearITPendingBit(EXTI_Line12);   
 	 }
 	 OSIntExit();											  
@@ -532,30 +542,25 @@ u8 SPI_NETWORK_ReadByte(void)
   * @param  byte：要发送的数据
   * @retval 返回接收到的数据
   */
- static __IO uint32_t  SPITimeout = SPIT_FLAG_TIMEOUT;
+
 u8 SPI_NETWORK_SendByte(u8 byte)
 {
-  SPITimeout = SPIT_FLAG_TIMEOUT;
+	u8 retry=0;				 	
+	while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_TXE) == RESET) //检查指定的SPI标志位设置与否:发送缓存空标志位
+		{
+		retry++;
+		if(retry>200)return 0;
+		}			  
+	SPI_I2S_SendData(SPI1, byte); //通过外设SPIx发送一个数据
+	retry=0;
 
-  /* 等待发送缓冲区为空，TXE事件 */
-  while (SPI_I2S_GetFlagStatus(NETWORK_SPI, SPI_I2S_FLAG_TXE) == RESET)
-   {
-    if((SPITimeout--) == 0) return (0);
-   }
+	while (SPI_I2S_GetFlagStatus(SPI1, SPI_I2S_FLAG_RXNE) == RESET)//检查指定的SPI标志位设置与否:接受缓存非空标志位
+		{
+		retry++;
+		if(retry>200)return 0;
+		}	  						    
+	return SPI_I2S_ReceiveData(SPI1); //返回通过SPIx最近接收的数据	
 
-  /* 写入数据寄存器，把要写入的数据写入发送缓冲区 */
-  SPI_I2S_SendData(NETWORK_SPI, byte);
-
-  SPITimeout = SPIT_FLAG_TIMEOUT;
-
-  /* 等待接收缓冲区非空，RXNE事件 */
-  while (SPI_I2S_GetFlagStatus(NETWORK_SPI, SPI_I2S_FLAG_RXNE) == RESET)
-   {
-    if((SPITimeout--) == 0) return (1);
-   }
-
-  /* 读取数据寄存器，获取接收缓冲区数据 */
-  return SPI_I2S_ReceiveData(NETWORK_SPI);
 }
 
 

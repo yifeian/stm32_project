@@ -242,7 +242,7 @@ static  void  AppMutexTest ( void * p_arg )
 		pMsg = OSQPend(&p_q, 0, OS_OPT_PEND_BLOCKING, &msg_size, 0, &err);
 		if(err == OS_ERR_NONE && pMsg != NULL)
 		{
-			LOG("消息长度: %d字节, 内容: %s",msg_size,pMsg);
+			//LOG("消息长度: %d字节, 内容: %s",msg_size,pMsg);
 		}
 		OSMutexPost(&p_mutex, OS_OPT_POST_NONE, &err);
 	}
@@ -262,7 +262,7 @@ static  void  AppMutexTest1 ( void * p_arg )
 		if(err == OS_ERR_NONE)
 		if(ucValue[0] == ucValue[1])
 		{  
-			LOG("successful, ucValue0 is %d,ucValue1 is %d",ucValue[0],ucValue[1]);
+			//LOG("successful, ucValue0 is %d,ucValue1 is %d",ucValue[0],ucValue[1]);
 			OSQPost(&p_q,(void *)"test for queue !",sizeof("test for queue !"),OS_OPT_POST_ALL|OS_OPT_POST_FIFO|OS_OPT_POST_NO_SCHED,&err);
 		}
 		else

@@ -12,25 +12,25 @@
 #define NETWORK_SPI_CLK                       RCC_APB2Periph_SPI1
 #define NETWORK_SPI_CLK_INIT                  RCC_APB2PeriphClockCmd
 
-#define NETWORK_SPI_SCK_PIN                   GPIO_Pin_5                  
-#define NETWORK_SPI_SCK_GPIO_PORT             GPIOA                       
-#define NETWORK_SPI_SCK_GPIO_CLK              RCC_AHB1Periph_GPIOA
-#define NETWORK_SPI_SCK_PINSOURCE             GPIO_PinSource7
+#define NETWORK_SPI_SCK_PIN                   GPIO_Pin_3                 
+#define NETWORK_SPI_SCK_GPIO_PORT             GPIOB                       
+#define NETWORK_SPI_SCK_GPIO_CLK              RCC_AHB1Periph_GPIOB
+#define NETWORK_SPI_SCK_PINSOURCE             GPIO_PinSource3
 #define NETWORK_SPI_SCK_AF                    GPIO_AF_SPI1
 
-#define NETWORK_SPI_MISO_PIN                  GPIO_Pin_6                
-#define NETWORK_SPI_MISO_GPIO_PORT            GPIOA                   
-#define NETWORK_SPI_MISO_GPIO_CLK             RCC_AHB1Periph_GPIOA
-#define NETWORK_SPI_MISO_PINSOURCE            GPIO_PinSource8
+#define NETWORK_SPI_MISO_PIN                  GPIO_Pin_4               
+#define NETWORK_SPI_MISO_GPIO_PORT            GPIOB                
+#define NETWORK_SPI_MISO_GPIO_CLK             RCC_AHB1Periph_GPIOB
+#define NETWORK_SPI_MISO_PINSOURCE            GPIO_PinSource4
 #define NETWORK_SPI_MISO_AF                   GPIO_AF_SPI1
 
-#define NETWORK_SPI_MOSI_PIN                  GPIO_Pin_7                
-#define NETWORK_SPI_MOSI_GPIO_PORT            GPIOA                      
-#define NETWORK_SPI_MOSI_GPIO_CLK             RCC_AHB1Periph_GPIOA
-#define NETWORK_SPI_MOSI_PINSOURCE            GPIO_PinSource9
+#define NETWORK_SPI_MOSI_PIN                  GPIO_Pin_5                
+#define NETWORK_SPI_MOSI_GPIO_PORT            GPIOB                    
+#define NETWORK_SPI_MOSI_GPIO_CLK             RCC_AHB1Periph_GPIOB
+#define NETWORK_SPI_MOSI_PINSOURCE            GPIO_PinSource5
 #define NETWORK_SPI_MOSI_AF                   GPIO_AF_SPI1
 
-#define NETWORK_CS_PIN                        GPIO_Pin_4               
+#define NETWORK_CS_PIN                        GPIO_Pin_15              
 #define NETWORK_CS_GPIO_PORT                  GPIOA                     
 #define NETWORK_CS_GPIO_CLK                   RCC_AHB1Periph_GPIOA
 

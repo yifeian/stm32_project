@@ -81,6 +81,7 @@
 #include "malloc.h"	
 #include "bsp_spi_flash.h"
 #include "bsp_enc28j60.h"
+#include "lwip_comm.h" 
 
 
 
